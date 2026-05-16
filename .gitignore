@@ -1,0 +1,8 @@
+# Ignore everything by default
+*
+
+# Keep plugin files and README
+!.gitignore
+!readme.md
+!wp_sfw_nsfw_gallery/
+!wp_sfw_nsfw_gallery/**
