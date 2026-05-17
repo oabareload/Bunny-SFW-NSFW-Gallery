@@ -6,7 +6,7 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 
 ## Versión actual
 
-**0.3.0** — UX improvements: títulos, image size, aspect ratio, blur intensity, menú propio, lightbox fix
+**0.3.1** — Sistema NSFW visual mejorado: display styles, modal elegante, reset de cookie
 
 ---
 
@@ -18,7 +18,11 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 - **Tamaño de imagen** configurable: thumbnail, medium, large, full
 - **Aspect ratio** configurable: square, portrait, landscape, original
 - Blur configurable con **intensidad en px** (0–20, CSS variable `--bunny-blur`)
-- Overlay de verificación de edad con mensaje personalizable
+- **3 estilos de protección NSFW**: minimal, overlay, hidden
+- **Modal elegante** (modo minimal) con backdrop, ESC y cancelar
+- **Badge flotante** sobre las imágenes en modo minimal (tipo Patreon/Pixiv)
+- **Botón de re-bloqueo** visible cuando la cookie existe
+- Texto del botón desbloquear configurable globalmente
 - Desbloqueo sin recarga, con propagación en cascada a galerías de la misma página
 - **Lightbox nativo aislado por instancia** — botones prev/next fijos al viewport
 - Fade al cambiar imagen en lightbox
@@ -46,11 +50,13 @@ Ubicación: **Bunny Gallery** (menú lateral de WordPress Admin)
 
 ### Sección: Protección NSFW
 
-| Setting              | Descripción                                              | Default                                |
-|----------------------|----------------------------------------------------------|----------------------------------------|
-| Blur NSFW activado   | Aplica blur hasta confirmación de edad                   | `true`                                 |
-| Intensidad del blur  | Slider 0–20px, con preview visual                        | `12`                                   |
-| Mensaje overlay NSFW | Texto del overlay de verificación de edad                | `Este contenido es solo para adultos.` |
+| Setting                | Descripción                                              | Default                                |
+|------------------------|----------------------------------------------------------|----------------------------------------|
+| Estilo de protección   | `minimal` / `overlay` / `hidden`                         | `minimal`                              |
+| Blur NSFW activado     | Aplica blur hasta confirmación de edad                   | `true`                                 |
+| Intensidad del blur    | Slider 0–20px, con preview visual                        | `12`                                   |
+| Mensaje NSFW           | Texto del overlay / modal de verificación                | `Este contenido es solo para adultos.` |
+| Texto botón desbloquear| Texto del botón en overlay y modal                       | `Ver contenido (+18)`                  |
 
 ### Sección: Títulos
 
@@ -59,7 +65,15 @@ Ubicación: **Bunny Gallery** (menú lateral de WordPress Admin)
 | Título SFW   | Título por defecto para galerías SFW          | vacío   |
 | Título NSFW  | Título por defecto para galerías NSFW         | vacío   |
 
-Los bloques con valor propio siempre lo priorizan sobre los settings globales.
+---
+
+## Estilos de protección NSFW
+
+| Estilo    | Comportamiento                                                             |
+|-----------|----------------------------------------------------------------------------|
+| `minimal` | Blur en imágenes + badge flotante. Click abre modal elegante (tipo Patreon)|
+| `overlay` | Capa semitransparente con botón centrado (tipo X/Twitter)                  |
+| `hidden`  | Capa sólida oscura + blur fuerte. Contenido casi invisible                 |
 
 ---
 
@@ -70,7 +84,8 @@ bunny_nsfw_age = 1
 ```
 
 Duración: 365 días. Se establece al confirmar edad en cualquier galería NSFW.  
-Al estar presente, todas las galerías NSFW de la página se desbloquean en cascada.
+Al estar presente, todas las galerías NSFW de la página se desbloquean en cascada.  
+El botón **"🔒 Volver a bloquear contenido NSFW"** aparece solo cuando la cookie existe.
 
 ---
 
@@ -100,11 +115,11 @@ Al estar presente, todas las galerías NSFW de la página se desbloquean en casc
 
 ## Variables CSS emitidas por bloque
 
-| Variable        | Valor                                 | Uso                                  |
-|-----------------|---------------------------------------|--------------------------------------|
-| `--bunny-cols`  | número de columnas                    | grid-template-columns                |
-| `--bunny-blur`  | intensidad en px (ej: `12px`)         | filter: blur() en imágenes NSFW      |
-| `--bunny-ratio` | aspect-ratio CSS (ej: `1 / 1`)        | aspect-ratio en .bunny-gallery-item  |
+| Variable        | Valor                          | Uso                                 |
+|-----------------|--------------------------------|-------------------------------------|
+| `--bunny-cols`  | número de columnas             | grid-template-columns               |
+| `--bunny-blur`  | intensidad en px (ej: `12px`)  | filter: blur() en imágenes NSFW     |
+| `--bunny-ratio` | aspect-ratio CSS (ej: `1 / 1`) | aspect-ratio en .bunny-gallery-item |
 
 ---
 
@@ -123,8 +138,8 @@ wp_sfw_nsfw_gallery/
 └── blocks/
     └── nsfw-gallery/
         ├── block.js            # Editor Gutenberg (sin JSX, sin build)
-        ├── frontend.js         # Vanilla JS: NSFW overlay + BunnyLightbox
-        └── style.css           # Estilos frontend: grid, overlay, lightbox
+        ├── frontend.js         # Vanilla JS: NSFW display styles + BunnyLightbox
+        └── style.css           # Estilos: grid, minimal badge, modal, overlay, lightbox
 ```
 
 ---
@@ -170,24 +185,30 @@ hardcoded fallback (bunny_gallery_hardcoded_defaults())
 
 ## Changelog
 
+### 0.3.1 — 2025-05
+- **Nuevo:** Setting `nsfw_display_style`: `minimal` / `overlay` / `hidden`
+- **Nuevo:** Modo `minimal` — blur + badge flotante + modal elegante (sin overlay oscuro)
+- **Nuevo:** Modal NSFW con backdrop, botón confirmar/cancelar, cierre por ESC y backdrop click
+- **Nuevo:** Modo `hidden` — capa sólida oscura + blur fuerte
+- **Nuevo:** Setting `unlock_button_text` — texto del botón configurable globalmente
+- **Nuevo:** Botón `🔒 Volver a bloquear contenido NSFW` — visible solo con cookie activa, re-bloquea sin reload
+- **Fix:** El blur vive solo en las imágenes; el overlay/modal no destruye visualmente el efecto
+- **Mejora:** `data-display-style` y `data-unlock-text` emitidos por el render_callback PHP
+- **Mejora:** `deleteCookie()` helper para borrar la cookie de consentimiento
+
 ### 0.3.0 — 2025-05
 - **Nuevo:** Títulos de galería (SFW / NSFW) con override por bloque
 - **Nuevo:** Selector de tamaño de imagen (thumbnail / medium / large / full)
-- **Nuevo:** Selector de aspect ratio (square / portrait / landscape / original) en frontend y editor preview
-- **Nuevo:** Blur intensity con slider 0–20px, preview visual en settings, variable CSS `--bunny-blur`
-- **Nuevo:** Menú propio `Bunny Gallery` en el sidebar de WordPress Admin (reemplaza Settings sub-página)
-- **Fix:** Botones prev/next del lightbox ahora son `position:fixed` al viewport — ya no se mueven con la imagen
-- **Mejora:** Fade de imagen en lightbox al navegar (opacity transition)
-- **Mejora:** Counter visual con pill de fondo (legibilidad mejorada)
-- **Mejora:** `body.bunny-lightbox-open` para bloquear scroll del body
-- **Mejora:** `RangeControl` en el editor para columnas y blur intensity
-- **Mejora:** Settings organizados en 3 secciones: Galería, Protección NSFW, Títulos
+- **Nuevo:** Selector de aspect ratio (square / portrait / landscape / original)
+- **Nuevo:** Blur intensity con slider 0–20px y preview visual en settings
+- **Nuevo:** Menú propio `Bunny Gallery` en el sidebar de WordPress Admin
+- **Fix:** Botones prev/next del lightbox son `position:fixed` — ya no se mueven con la imagen
+- **Mejora:** Fade de imagen en lightbox, counter con pill, `body.bunny-lightbox-open`
 
 ### 0.2.0 — 2025-05
 - **Nuevo:** Sistema de settings globales (Options API)
 - **Nuevo:** Lightbox nativo aislado por instancia (`BunnyLightbox`)
-- **Mejora:** `render_callback` con `data-gallery-id` único
-- **Mejora:** `wp_localize_script` pasa defaults al editor JS
+- **Mejora:** `render_callback` con `data-gallery-id` único, `wp_localize_script`
 
 ### 0.0.1 — inicial
 - Bloque Gutenberg dinámico SFW/NSFW
