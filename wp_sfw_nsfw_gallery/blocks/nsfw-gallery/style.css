@@ -1,6 +1,6 @@
 /* =============================================================================
    Bunny SFW&NSFW Gallery — style.css
-   v0.2.0
+   v0.3.0
    ============================================================================= */
 
 /* -----------------------------------------------------------------------------
@@ -12,31 +12,55 @@
 }
 
 /* -----------------------------------------------------------------------------
+   TÍTULO DE GALERÍA
+   ----------------------------------------------------------------------------- */
+
+.bunny-gallery-title {
+    margin:      0 0 12px 0;
+    font-size:   18px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.bunny-gallery-title--sfw {
+    color: #1e1e1e;
+}
+
+.bunny-gallery-title--nsfw {
+    color: #cc1818;
+}
+
+/* -----------------------------------------------------------------------------
    GRID DE IMÁGENES
    ----------------------------------------------------------------------------- */
 
 .bunny-gallery {
     display: grid;
-    grid-template-columns: repeat( auto-fill, minmax( 140px, 1fr ) );
-    gap: 10px;
+    gap:     10px;
 }
 
 .bunny-gallery-item {
-    position:    relative;
-    overflow:    hidden;
+    position:     relative;
+    overflow:     hidden;
     border-radius: 10px;
-    aspect-ratio: 1;
-    background:  #f0f0f1;
+    aspect-ratio: var( --bunny-ratio, 1 / 1 );
+    background:   #f0f0f1;
 }
 
 .bunny-gallery-item img,
 .bunny-gallery-item a img {
-    width:       100%;
-    height:      100%;
-    object-fit:  cover;
-    display:     block;
+    width:        100%;
+    height:       100%;
+    object-fit:   cover;
+    display:      block;
     border-radius: 10px;
-    transition:  filter 0.3s ease, transform 0.2s ease;
+    transition:   filter 0.3s ease, transform 0.2s ease;
+}
+
+/* Aspect ratio original → contener en lugar de recortar */
+.bunny-gallery-wrapper[style*="--bunny-ratio: auto"] .bunny-gallery-item img,
+.bunny-gallery-wrapper[style*="--bunny-ratio:auto"] .bunny-gallery-item img {
+    object-fit: contain;
 }
 
 .bunny-gallery-item:hover img {
@@ -45,10 +69,12 @@
 
 /* -----------------------------------------------------------------------------
    BLUR NSFW
+   Usa --bunny-blur inyectado por PHP (valor en px).
+   Fallback a 12px si la variable no existe.
    ----------------------------------------------------------------------------- */
 
 .bunny-gallery-wrapper[data-blur="1"].locked .bunny-gallery img {
-    filter: blur( 12px );
+    filter: blur( var( --bunny-blur, 12px ) );
 }
 
 /* -----------------------------------------------------------------------------
@@ -83,17 +109,17 @@
 }
 
 .bunny-unlock-btn {
-    display:         inline-block;
-    margin-top:      4px;
-    padding:         10px 22px;
-    cursor:          pointer;
-    border-radius:   8px;
-    border:          1px solid rgba( 255, 255, 255, 0.4 );
-    background:      rgba( 255, 255, 255, 0.12 );
-    color:           #fff;
-    font-size:       14px;
-    font-weight:     600;
-    transition:      background 0.2s ease, border-color 0.2s ease;
+    display:      inline-block;
+    margin-top:   4px;
+    padding:      10px 22px;
+    cursor:       pointer;
+    border-radius: 8px;
+    border:       1px solid rgba( 255, 255, 255, 0.4 );
+    background:   rgba( 255, 255, 255, 0.12 );
+    color:        #fff;
+    font-size:    14px;
+    font-weight:  600;
+    transition:   background 0.2s ease, border-color 0.2s ease;
 }
 
 .bunny-unlock-btn:hover,
@@ -104,127 +130,150 @@
 }
 
 /* -----------------------------------------------------------------------------
-   LIGHTBOX OVERLAY
+   LIGHTBOX — layout con elementos fixed independientes
+   Los botones prev/next son position:fixed anclados al viewport.
+   No están dentro del contenedor de la imagen → nunca se mueven.
    ----------------------------------------------------------------------------- */
 
+/* Bloquear scroll del body cuando el lightbox está abierto */
+body.bunny-lightbox-open {
+    overflow: hidden;
+}
+
 .bunny-lightbox-overlay {
-    position:   fixed;
-    inset:      0;
-    z-index:    99999;
-    display:    flex;
-    align-items:    center;
-    justify-content: center;
+    position: fixed;
+    inset:    0;
+    z-index:  99999;
 }
 
 .bunny-lightbox-overlay[hidden] {
     display: none;
 }
 
+/* Backdrop */
 .blb-backdrop {
-    position:   absolute;
+    position:   fixed;
     inset:      0;
-    background: rgba( 0, 0, 0, 0.92 );
+    background: rgba( 0, 0, 0, 0.93 );
     cursor:     zoom-out;
 }
 
-.blb-dialog {
-    position:       relative;
-    z-index:        1;
-    display:        flex;
-    align-items:    center;
-    justify-content: center;
-    gap:            16px;
-    padding:        16px;
-    max-width:      95vw;
-    max-height:     95vh;
-    box-sizing:     border-box;
-}
-
-/* Imagen principal */
-.blb-img {
-    display:        block;
-    max-width:      85vw;
-    max-height:     85vh;
-    object-fit:     contain;
-    border-radius:  6px;
-    box-shadow:     0 8px 40px rgba( 0, 0, 0, 0.6 );
-    user-select:    none;
-    -webkit-user-drag: none;
-}
-
-/* Botones de navegación compartidos */
-.blb-prev,
-.blb-next,
+/* ── Botón cerrar (esquina sup-derecha) ── */
 .blb-close {
+    position:        fixed;
+    top:             20px;
+    right:           20px;
+    z-index:         100001;
+    width:           44px;
+    height:          44px;
     display:         flex;
     align-items:     center;
     justify-content: center;
-    background:      rgba( 255, 255, 255, 0.1 );
-    border:          1px solid rgba( 255, 255, 255, 0.25 );
-    color:           #fff;
-    cursor:          pointer;
+    background:      rgba( 255, 255, 255, 0.12 );
+    border:          1px solid rgba( 255, 255, 255, 0.3 );
     border-radius:   50%;
-    transition:      background 0.2s ease;
-    flex-shrink:     0;
+    color:           #fff;
+    font-size:       22px;
     line-height:     1;
+    cursor:          pointer;
+    transition:      background 0.2s ease;
 }
 
-.blb-prev:hover,
-.blb-next:hover,
-.blb-close:hover {
-    background: rgba( 255, 255, 255, 0.25 );
-}
-
-.blb-prev:focus-visible,
-.blb-next:focus-visible,
-.blb-close:focus-visible {
-    outline:        2px solid #fff;
-    outline-offset: 2px;
-}
-
-/* Flechas izquierda / derecha */
+/* ── Botones prev / next (centrados verticalmente, lados del viewport) ── */
 .blb-prev,
 .blb-next {
-    width:     48px;
-    height:    48px;
-    font-size: 22px;
+    position:        fixed;
+    top:             50%;
+    transform:       translateY( -50% );
+    z-index:         100001;
+    width:           52px;
+    height:          52px;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    background:      rgba( 255, 255, 255, 0.12 );
+    border:          1px solid rgba( 255, 255, 255, 0.3 );
+    border-radius:   50%;
+    color:           #fff;
+    font-size:       24px;
+    line-height:     1;
+    cursor:          pointer;
+    transition:      background 0.2s ease;
+    user-select:     none;
 }
 
-/* Botón cerrar — esquina superior derecha del dialog */
-.blb-close {
-    position:  absolute;
-    top:       -12px;
-    right:     -12px;
-    width:     36px;
-    height:    36px;
-    font-size: 20px;
-    z-index:   2;
+.blb-prev { left:  16px; }
+.blb-next { right: 16px; }
+
+.blb-close:hover,
+.blb-prev:hover,
+.blb-next:hover {
+    background: rgba( 255, 255, 255, 0.28 );
 }
 
-/* Contador de imágenes */
+.blb-close:focus-visible,
+.blb-prev:focus-visible,
+.blb-next:focus-visible {
+    outline:        2px solid #fff;
+    outline-offset: 3px;
+}
+
+/* ── Contenedor de imagen (centrado en el viewport) ── */
+.blb-img-wrap {
+    position:        fixed;
+    inset:           0;
+    z-index:         100000;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    pointer-events:  none; /* el click pasa al backdrop */
+}
+
+.blb-img {
+    display:         block;
+    max-width:       calc( 100vw - 140px ); /* margen para los botones */
+    max-height:      calc( 100vh - 80px  ); /* margen para counter y close */
+    object-fit:      contain;
+    border-radius:   6px;
+    box-shadow:      0 12px 60px rgba( 0, 0, 0, 0.7 );
+    pointer-events:  auto;
+    user-select:     none;
+    -webkit-user-drag: none;
+    /* opacity animada por JS en _render() */
+}
+
+/* ── Counter (centrado en la parte inferior) ── */
 .blb-counter {
-    position:    absolute;
-    bottom:      -28px;
-    left:        50%;
-    transform:   translateX( -50% );
-    font-size:   13px;
-    color:       rgba( 255, 255, 255, 0.7 );
-    white-space: nowrap;
+    position:       fixed;
+    bottom:         20px;
+    left:           50%;
+    transform:      translateX( -50% );
+    z-index:        100001;
+    font-size:      13px;
+    font-family:    sans-serif;
+    color:          rgba( 255, 255, 255, 0.75 );
+    white-space:    nowrap;
     pointer-events: none;
-    font-family: sans-serif;
+    background:     rgba( 0, 0, 0, 0.4 );
+    padding:        4px 12px;
+    border-radius:  20px;
+    letter-spacing: 0.5px;
 }
 
-/* Responsive: pantallas pequeñas */
+/* ── Responsive ── */
 @media ( max-width: 600px ) {
+    .blb-prev { left:  8px; }
+    .blb-next { right: 8px; }
+
     .blb-prev,
     .blb-next {
-        width:     36px;
-        height:    36px;
-        font-size: 18px;
+        width:     42px;
+        height:    42px;
+        font-size: 20px;
     }
 
     .blb-img {
-        max-width:  95vw;
-        max-height: 80vh;
+        max-width:  calc( 100vw - 100px );
+        max-height: calc( 100vh - 100px );
     }
 }

@@ -1,51 +1,58 @@
 /* jshint esversion: 6 */
 /**
- * Bunny SFW&NSFW Gallery — block.js  (editor Gutenberg, sin JSX)
- *
- * Lee los defaults del plugin desde window.bunnyGalleryDefaults
- * (inyectado por wp_localize_script) para pre-rellenar atributos
- * en bloques nuevos que aún no tienen valor propio guardado.
- *
- * @since 0.2.0
+ * Bunny SFW&NSFW Gallery — block.js
+ * @since 0.3.0
  */
 
-(function () {
+( function () {
     'use strict';
 
-    var el             = wp.element.createElement;
-    var registerBlock  = wp.blocks.registerBlockType;
-    var MediaUpload    = wp.blockEditor.MediaUpload;
+    var el                = wp.element.createElement;
+    var registerBlock     = wp.blocks.registerBlockType;
+    var MediaUpload       = wp.blockEditor.MediaUpload;
     var InspectorControls = wp.blockEditor.InspectorControls;
-    var BlockControls  = wp.blockEditor.BlockControls;
+    var BlockControls     = wp.blockEditor.BlockControls;
 
-    var Button         = wp.components.Button;
-    var PanelBody      = wp.components.PanelBody;
-    var ToggleControl  = wp.components.ToggleControl;
-    var TextControl    = wp.components.TextControl;
-    var SelectControl  = wp.components.SelectControl;
-    var ToolbarGroup   = wp.components.ToolbarGroup;
-    var ToolbarButton  = wp.components.ToolbarButton;
-    var Spinner        = wp.components.Spinner;
+    var Button        = wp.components.Button;
+    var PanelBody     = wp.components.PanelBody;
+    var ToggleControl = wp.components.ToggleControl;
+    var TextControl   = wp.components.TextControl;
+    var SelectControl = wp.components.SelectControl;
+    var RangeControl  = wp.components.RangeControl;
+    var ToolbarGroup  = wp.components.ToolbarGroup;
+    var ToolbarButton = wp.components.ToolbarButton;
+    var Spinner       = wp.components.Spinner;
 
-    var useState   = wp.element.useState;
-    var useEffect  = wp.element.useEffect;
+    var useState  = wp.element.useState;
+    var useEffect = wp.element.useEffect;
 
     // -------------------------------------------------------------------------
-    // DEFAULTS DEL PLUGIN
-    // Inyectados por wp_localize_script como window.bunnyGalleryDefaults.
-    // Fallback local si por algún motivo no están disponibles.
+    // DEFAULTS
     // -------------------------------------------------------------------------
 
-    var pluginDefaults = window.bunnyGalleryDefaults || {
-        columns:       3,
-        blur:          true,
-        link_behavior: 'none',
-        target_blank:  false,
-        nsfw_message:  'Este contenido es solo para adultos.'
+    var D = window.bunnyGalleryDefaults || {
+        columns:        3,
+        blur:           true,
+        blur_intensity: 12,
+        link_behavior:  'none',
+        target_blank:   false,
+        nsfw_message:   'Este contenido es solo para adultos.',
+        sfw_title:      '',
+        nsfw_title:     '',
+        image_size:     'large',
+        aspect_ratio:   'square',
+    };
+
+    // Aspect ratio → CSS aspect-ratio
+    var RATIO_MAP = {
+        square:    '1 / 1',
+        portrait:  '2 / 3',
+        landscape: '16 / 9',
+        original:  'auto',
     };
 
     // -------------------------------------------------------------------------
-    // REGISTRO DEL BLOQUE
+    // REGISTRO
     // -------------------------------------------------------------------------
 
     registerBlock( 'bunny/nsfw-gallery', {
@@ -55,14 +62,19 @@
         category: 'media',
 
         attributes: {
-            images:      { type: 'array',   default: [] },
-            imageData:   { type: 'array',   default: [] },
-            mode:        { type: 'string',  default: 'sfw' },
-            message:     { type: 'string',  default: pluginDefaults.nsfw_message  },
-            columns:     { type: 'number',  default: pluginDefaults.columns       },
-            linkTo:      { type: 'string',  default: pluginDefaults.link_behavior },
-            blur:        { type: 'boolean', default: !! pluginDefaults.blur       },
-            targetBlank: { type: 'boolean', default: !! pluginDefaults.target_blank }
+            images:        { type: 'array',   default: [] },
+            imageData:     { type: 'array',   default: [] },
+            mode:          { type: 'string',  default: 'sfw' },
+            message:       { type: 'string',  default: D.nsfw_message },
+            columns:       { type: 'number',  default: D.columns },
+            linkTo:        { type: 'string',  default: D.link_behavior },
+            blur:          { type: 'boolean', default: !! D.blur },
+            blurIntensity: { type: 'number',  default: D.blur_intensity },
+            targetBlank:   { type: 'boolean', default: !! D.target_blank },
+            imageSize:     { type: 'string',  default: D.image_size },
+            aspectRatio:   { type: 'string',  default: D.aspect_ratio },
+            sfwTitle:      { type: 'string',  default: D.sfw_title  || '' },
+            nsfwTitle:     { type: 'string',  default: D.nsfw_title || '' },
         },
 
         // ----------------------------------------------------------------------
@@ -74,31 +86,31 @@
             var attrs = props.attributes;
             var set   = props.setAttributes;
 
-            var images    = attrs.images;
-            var imageData = attrs.imageData;
-            var mode      = attrs.mode;
-            var message   = attrs.message;
-            var columns   = attrs.columns;
-            var linkTo    = attrs.linkTo;
-            var blur      = attrs.blur;
+            var images        = attrs.images;
+            var imageData     = attrs.imageData;
+            var mode          = attrs.mode;
+            var message       = attrs.message;
+            var columns       = attrs.columns;
+            var linkTo        = attrs.linkTo;
+            var blur          = attrs.blur;
+            var blurIntensity = attrs.blurIntensity;
+            var imageSize     = attrs.imageSize;
+            var aspectRatio   = attrs.aspectRatio;
+            var sfwTitle      = attrs.sfwTitle;
+            var nsfwTitle     = attrs.nsfwTitle;
 
-            var resolvedState = useState( imageData || [] );
-            var resolvedImages = resolvedState[0];
-            var setResolved    = resolvedState[1];
+            var rState        = useState( imageData || [] );
+            var resolvedImages = rState[0];
+            var setResolved    = rState[1];
 
-            var loadingState = useState( false );
-            var loading      = loadingState[0];
-            var setLoading   = loadingState[1];
+            var lState   = useState( false );
+            var loading  = lState[0];
+            var setLoading = lState[1];
 
-            // Resolver URLs cuando cambia la lista de IDs
+            // Resolver URLs de imágenes
             useEffect( function () {
+                if ( ! images || images.length === 0 ) { setResolved( [] ); return; }
 
-                if ( ! images || images.length === 0 ) {
-                    setResolved( [] );
-                    return;
-                }
-
-                // Usar cache si los IDs coinciden exactamente
                 if (
                     imageData &&
                     imageData.length === images.length &&
@@ -109,22 +121,20 @@
                 }
 
                 setLoading( true );
-
                 var resolved = [];
                 var pending  = images.length;
 
                 images.forEach( function ( id ) {
-                    var attachment = wp.media.attachment( id );
+                    var att = wp.media.attachment( id );
 
                     function onReady() {
-                        var sizes = attachment.get( 'sizes' ) || {};
-                        var url   = attachment.get( 'url' ) ||
-                                    ( sizes.large      && sizes.large.url  ) ||
-                                    ( sizes.medium     && sizes.medium.url ) ||
-                                    ( sizes.full       && sizes.full.url   ) || '';
-                        resolved.push( { id: id, url: url, alt: attachment.get( 'alt' ) || '' } );
-                        pending--;
-                        if ( pending === 0 ) {
+                        var sizes = att.get( 'sizes' ) || {};
+                        var url   = att.get( 'url' ) ||
+                                    ( sizes.large  && sizes.large.url  ) ||
+                                    ( sizes.medium && sizes.medium.url ) ||
+                                    ( sizes.full   && sizes.full.url   ) || '';
+                        resolved.push( { id: id, url: url, alt: att.get( 'alt' ) || '' } );
+                        if ( --pending === 0 ) {
                             resolved.sort( function ( a, b ) {
                                 return images.indexOf( a.id ) - images.indexOf( b.id );
                             } );
@@ -134,23 +144,41 @@
                         }
                     }
 
-                    if ( attachment.get( 'url' ) ) {
-                        onReady();
-                    } else {
-                        attachment.fetch().then( onReady ).catch( onReady );
-                    }
+                    att.get( 'url' ) ? onReady() : att.fetch().then( onReady ).catch( onReady );
                 } );
-
             }, [ images ] );
 
             // ------------------------------------------------------------------
-            // ESTILOS INLINE
+            // ESTILOS PREVIEW
             // ------------------------------------------------------------------
+
+            var cssRatio  = RATIO_MAP[ aspectRatio ] || '1 / 1';
+            var isNsfw    = mode === 'nsfw';
+            var activeTitle = isNsfw ? nsfwTitle : sfwTitle;
 
             var gridStyle = {
                 display:             'grid',
                 gridTemplateColumns: 'repeat(' + columns + ', 1fr)',
-                gap:                 '8px'
+                gap:                 '8px',
+            };
+
+            var itemStyle = {
+                position:    'relative',
+                borderRadius: '8px',
+                overflow:    'hidden',
+                aspectRatio: cssRatio,
+                background:  '#f0f0f0',
+            };
+
+            var imgStyle = {
+                width:      '100%',
+                height:     '100%',
+                objectFit:  aspectRatio === 'original' ? 'contain' : 'cover',
+                display:    'block',
+                filter:     ( isNsfw && blur )
+                            ? 'blur(' + blurIntensity + 'px)'
+                            : 'none',
+                transition: 'filter 0.2s',
             };
 
             var badgeStyle = {
@@ -162,35 +190,29 @@
                 fontWeight:    '600',
                 letterSpacing: '0.5px',
                 textTransform: 'uppercase',
-                background:    mode === 'nsfw' ? '#cc1818' : '#1d8348',
-                color:         '#fff'
+                background:    isNsfw ? '#cc1818' : '#1d8348',
+                color:         '#fff',
             };
 
             // ------------------------------------------------------------------
-            // PLACEHOLDER (sin imágenes)
+            // PLACEHOLDER
             // ------------------------------------------------------------------
 
             function renderPlaceholder( open ) {
                 return el( 'div', {
                     style: {
-                        display:        'flex',
-                        flexDirection:  'column',
-                        alignItems:     'center',
-                        justifyContent: 'center',
-                        gap:            '12px',
-                        minHeight:      '160px',
-                        border:         '2px dashed #c3c4c7',
-                        borderRadius:   '4px',
-                        padding:        '32px',
-                        background:     '#f6f7f7',
-                        cursor:         'pointer',
-                        boxSizing:      'border-box'
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        gap: '12px', minHeight: '160px',
+                        border: '2px dashed #c3c4c7', borderRadius: '4px',
+                        padding: '32px', background: '#f6f7f7',
+                        cursor: 'pointer', boxSizing: 'border-box',
                     },
-                    onClick: open
+                    onClick: open,
                 },
                     el( 'span', {
                         className: 'dashicons dashicons-format-gallery',
-                        style: { fontSize: '48px', width: '48px', height: '48px', color: '#a0a5aa' }
+                        style: { fontSize: '48px', width: '48px', height: '48px', color: '#a0a5aa' },
                     } ),
                     el( 'p', { style: { margin: 0, color: '#757575', fontSize: '13px' } },
                         'Haz clic para seleccionar imágenes'
@@ -208,63 +230,49 @@
 
                     el( BlockControls, {},
                         el( ToolbarGroup, {},
-                            el( ToolbarButton, {
-                                icon:    'edit',
-                                label:   'Editar galería',
-                                onClick: open
-                            } )
+                            el( ToolbarButton, { icon: 'edit', label: 'Editar galería', onClick: open } )
                         )
                     ),
 
                     // Cabecera
                     el( 'div', {
                         style: {
-                            display:        'flex',
-                            alignItems:     'center',
-                            justifyContent: 'space-between',
-                            marginBottom:   '10px'
-                        }
+                            display: 'flex', alignItems: 'center',
+                            justifyContent: 'space-between', marginBottom: '8px',
+                        },
                     },
-                        el( 'span', { style: badgeStyle }, mode === 'nsfw' ? 'NSFW' : 'SFW' ),
-                        el( 'span', { style: { fontSize: '12px', color: '#757575' } },
-                            resolvedImages.length + ' imagen' + ( resolvedImages.length !== 1 ? 'es' : '' ) +
-                            '  |  ' + columns + ' col  |  ' + linkTo
+                        el( 'div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+                            el( 'span', { style: badgeStyle }, isNsfw ? 'NSFW' : 'SFW' ),
+                            activeTitle && el( 'span', {
+                                style: { fontSize: '14px', fontWeight: '600', color: '#1e1e1e' },
+                            }, activeTitle )
+                        ),
+                        el( 'span', { style: { fontSize: '11px', color: '#9e9e9e' } },
+                            resolvedImages.length + ' img · ' + columns + ' col · ' + aspectRatio + ' · ' + imageSize
                         )
                     ),
 
-                    // Grid de imágenes
+                    // Título visual (si existe)
+                    activeTitle && el( 'p', {
+                        style: {
+                            margin: '0 0 8px 0', fontSize: '16px',
+                            fontWeight: '700', color: isNsfw ? '#cc1818' : '#1e1e1e',
+                        },
+                    }, activeTitle ),
+
+                    // Grid
                     loading
                         ? el( 'div', { style: { textAlign: 'center', padding: '32px' } }, el( Spinner ) )
                         : el( 'div', { style: gridStyle },
                             resolvedImages.map( function ( img ) {
-                                return el( 'div', {
-                                    key: img.id,
-                                    style: {
-                                        position:    'relative',
-                                        borderRadius: '4px',
-                                        overflow:    'hidden',
-                                        aspectRatio: '1',
-                                        background:  '#f0f0f0'
-                                    }
-                                },
-                                    el( 'img', {
-                                        src:   img.url,
-                                        alt:   img.alt,
-                                        style: {
-                                            width:      '100%',
-                                            height:     '100%',
-                                            objectFit:  'cover',
-                                            display:    'block',
-                                            filter:     ( mode === 'nsfw' && blur ) ? 'blur(6px)' : 'none',
-                                            transition: 'filter 0.2s'
-                                        }
-                                    } )
+                                return el( 'div', { key: img.id, style: itemStyle },
+                                    el( 'img', { src: img.url, alt: img.alt, style: imgStyle } )
                                 );
                             } )
-                        ),
+                          ),
 
-                    // Botón pie
-                    el( 'div', { style: { marginTop: '10px', textAlign: 'right' } },
+                    // Pie
+                    el( 'div', { style: { marginTop: '8px', textAlign: 'right' } },
                         el( Button, { variant: 'secondary', onClick: open, style: { fontSize: '12px' } },
                             'Editar galería'
                         )
@@ -280,55 +288,108 @@
 
                 el( InspectorControls, {},
 
+                    // ── Panel: NSFW ──────────────────────────────────────────
                     el( PanelBody, { title: 'NSFW Settings', initialOpen: true },
 
                         el( ToggleControl, {
                             label:    'Modo NSFW',
-                            checked:  mode === 'nsfw',
-                            onChange: function ( v ) { set( { mode: v ? 'nsfw' : 'sfw' } ); }
+                            checked:  isNsfw,
+                            onChange: function ( v ) { set( { mode: v ? 'nsfw' : 'sfw' } ); },
                         } ),
 
-                        mode === 'nsfw' && el( TextControl, {
+                        isNsfw && el( TextControl, {
                             label:    'Mensaje overlay',
                             value:    message,
-                            onChange: function ( v ) { set( { message: v } ); }
+                            onChange: function ( v ) { set( { message: v } ); },
                         } ),
 
-                        mode === 'nsfw' && el( ToggleControl, {
-                            label:    'Blur en preview del editor',
+                        isNsfw && el( ToggleControl, {
+                            label:    'Blur activo',
                             checked:  blur,
-                            onChange: function ( v ) { set( { blur: v } ); }
+                            onChange: function ( v ) { set( { blur: v } ); },
+                        } ),
+
+                        isNsfw && blur && el( RangeControl, {
+                            label:    'Intensidad del blur',
+                            value:    blurIntensity,
+                            min:      0,
+                            max:      20,
+                            step:     1,
+                            onChange: function ( v ) { set( { blurIntensity: v } ); },
                         } )
                     ),
 
+                    // ── Panel: Galería ───────────────────────────────────────
                     el( PanelBody, { title: 'Gallery Settings', initialOpen: false },
 
-                        el( TextControl, {
+                        el( RangeControl, {
                             label:    'Columnas',
-                            type:     'number',
+                            value:    columns,
                             min:      1,
                             max:      6,
-                            value:    columns,
-                            onChange: function ( v ) { set( { columns: Math.max( 1, Math.min( 6, parseInt( v ) || pluginDefaults.columns ) ) } ); }
+                            step:     1,
+                            onChange: function ( v ) { set( { columns: v } ); },
+                        } ),
+
+                        el( SelectControl, {
+                            label:    'Tamaño de imagen',
+                            value:    imageSize,
+                            options:  [
+                                { value: 'thumbnail', label: 'Thumbnail (~150px)' },
+                                { value: 'medium',    label: 'Medium (~300px)'    },
+                                { value: 'large',     label: 'Large (~1024px)'    },
+                                { value: 'full',      label: 'Full (original)'    },
+                            ],
+                            onChange: function ( v ) { set( { imageSize: v } ); },
+                        } ),
+
+                        el( SelectControl, {
+                            label:    'Aspect ratio',
+                            value:    aspectRatio,
+                            options:  [
+                                { value: 'square',    label: 'Square (1:1)'        },
+                                { value: 'portrait',  label: 'Portrait (2:3)'      },
+                                { value: 'landscape', label: 'Landscape (16:9)'    },
+                                { value: 'original',  label: 'Original (sin recorte)' },
+                            ],
+                            onChange: function ( v ) { set( { aspectRatio: v } ); },
                         } ),
 
                         el( SelectControl, {
                             label:    'Comportamiento de enlace',
                             value:    linkTo,
                             options:  [
-                                { value: 'none',       label: 'Sin enlace'               },
-                                { value: 'lightbox',   label: 'Abrir en lightbox'        },
-                                { value: 'file',       label: 'Archivo de media'         },
-                                { value: 'attachment', label: 'Página de adjunto'        }
+                                { value: 'none',       label: 'Sin enlace'        },
+                                { value: 'lightbox',   label: 'Lightbox'          },
+                                { value: 'file',       label: 'Archivo de media'  },
+                                { value: 'attachment', label: 'Página de adjunto' },
                             ],
-                            onChange: function ( v ) { set( { linkTo: v } ); }
+                            onChange: function ( v ) { set( { linkTo: v } ); },
                         } ),
 
                         ( linkTo === 'file' || linkTo === 'attachment' ) &&
                         el( ToggleControl, {
                             label:    'Abrir en nueva pestaña',
                             checked:  attrs.targetBlank,
-                            onChange: function ( v ) { set( { targetBlank: v } ); }
+                            onChange: function ( v ) { set( { targetBlank: v } ); },
+                        } )
+                    ),
+
+                    // ── Panel: Títulos ───────────────────────────────────────
+                    el( PanelBody, { title: 'Títulos', initialOpen: false },
+
+                        el( TextControl, {
+                            label:    'Título SFW',
+                            value:    sfwTitle,
+                            placeholder: D.sfw_title || 'Ej: Galería de imágenes',
+                            onChange: function ( v ) { set( { sfwTitle: v } ); },
+                        } ),
+
+                        el( TextControl, {
+                            label:    'Título NSFW',
+                            value:    nsfwTitle,
+                            placeholder: D.nsfw_title || 'Ej: Contenido para adultos',
+                            onChange: function ( v ) { set( { nsfwTitle: v } ); },
                         } )
                     )
                 ),
@@ -351,14 +412,12 @@
                         return images.length === 0
                             ? renderPlaceholder( obj.open )
                             : renderGrid( obj.open );
-                    }
+                    },
                 } )
             );
         },
 
-        save: function () {
-            return null; // Bloque dinámico — render en PHP
-        }
+        save: function () { return null; },
     } );
 
 } )();
