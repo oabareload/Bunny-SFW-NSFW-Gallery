@@ -1,6 +1,6 @@
 /* =============================================================================
    Bunny SFW&NSFW Gallery — style.css
-   v0.3.1
+   v0.4.0
    ============================================================================= */
 
 /* -----------------------------------------------------------------------------
@@ -290,122 +290,404 @@
     display: none;
 }
 
-/* -----------------------------------------------------------------------------
-   LIGHTBOX (sin cambios)
-   ----------------------------------------------------------------------------- */
+/* =============================================================================
+   LIGHTBOX v0.4.0 — Rediseño completo premium
+   ============================================================================= */
+
+/* ── CSS Variables ─────────────────────────────────────────────────────────── */
+
+.bunny-lightbox-overlay {
+    /* dark theme (default) */
+    --blb-bg:           rgba( 10, 10, 12, 0.96 );
+    --blb-surface:      rgba( 255, 255, 255, 0.07 );
+    --blb-surface-hover: rgba( 255, 255, 255, 0.15 );
+    --blb-border:       rgba( 255, 255, 255, 0.12 );
+    --blb-text:         rgba( 255, 255, 255, 0.90 );
+    --blb-text-muted:   rgba( 255, 255, 255, 0.50 );
+    --blb-accent:       var( --bunny-accent, #7c6aff );
+    --blb-icon-close:   '✕';
+    --blb-icon-prev:    '‹';
+    --blb-icon-next:    '›';
+    --blb-radius-btn:   12px;
+    --blb-btn-size:     44px;
+    --blb-transition:   0.22s cubic-bezier( 0.4, 0, 0.2, 1 );
+}
+
+/* light theme */
+.bunny-lightbox-overlay[data-theme="light"] {
+    --blb-bg:            rgba( 245, 245, 247, 0.97 );
+    --blb-surface:       rgba( 0, 0, 0, 0.06 );
+    --blb-surface-hover: rgba( 0, 0, 0, 0.12 );
+    --blb-border:        rgba( 0, 0, 0, 0.10 );
+    --blb-text:          rgba( 10, 10, 20, 0.90 );
+    --blb-text-muted:    rgba( 10, 10, 20, 0.45 );
+}
+
+/* auto: respeta prefers-color-scheme */
+@media ( prefers-color-scheme: light ) {
+    .bunny-lightbox-overlay[data-theme="auto"] {
+        --blb-bg:            rgba( 245, 245, 247, 0.97 );
+        --blb-surface:       rgba( 0, 0, 0, 0.06 );
+        --blb-surface-hover: rgba( 0, 0, 0, 0.12 );
+        --blb-border:        rgba( 0, 0, 0, 0.10 );
+        --blb-text:          rgba( 10, 10, 20, 0.90 );
+        --blb-text-muted:    rgba( 10, 10, 20, 0.45 );
+    }
+}
+
+/* ── Base overlay ──────────────────────────────────────────────────────────── */
 
 body.bunny-lightbox-open { overflow: hidden; }
 
 .bunny-lightbox-overlay {
-    position: fixed;
-    inset:    0;
-    z-index:  99999;
+    position:   fixed;
+    inset:      0;
+    z-index:    99999;
+    /* grid layout: toda la pantalla */
+    display:    grid;
+    grid-template-rows: auto 1fr auto auto;
+    /* top-bar / image / caption / thumbs */
+    align-items: center;
 }
 
 .bunny-lightbox-overlay[hidden] { display: none; }
 
+/* enter animation */
+.bunny-lightbox-overlay:not( [hidden] ) {
+    animation: blb-fadein 0.22s ease both;
+}
+@keyframes blb-fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Backdrop ──────────────────────────────────────────────────────────────── */
+
 .blb-backdrop {
     position:   fixed;
     inset:      0;
-    background: rgba( 0, 0, 0, 0.93 );
+    background: var( --blb-bg );
     cursor:     zoom-out;
+    z-index:    0;
 }
 
-.blb-close {
+/* ── Top bar (close + counter) ─────────────────────────────────────────────── */
+
+.blb-topbar {
     position:        fixed;
-    top:             20px;
-    right:           20px;
-    z-index:         100001;
-    width:           44px;
-    height:          44px;
+    top:             0;
+    left:            0;
+    right:           0;
+    z-index:         100002;
+    height:          60px;
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    padding:         0 16px;
+    pointer-events:  none;
+}
+
+/* ── Botón base ────────────────────────────────────────────────────────────── */
+
+.blb-btn {
     display:         flex;
     align-items:     center;
     justify-content: center;
-    background:      rgba( 255, 255, 255, 0.12 );
-    border:          1px solid rgba( 255, 255, 255, 0.3 );
-    border-radius:   50%;
-    color:           #fff;
-    font-size:       22px;
-    line-height:     1;
+    width:           var( --blb-btn-size );
+    height:          var( --blb-btn-size );
+    background:      var( --blb-surface );
+    backdrop-filter: blur( 12px );
+    -webkit-backdrop-filter: blur( 12px );
+    border:          1px solid var( --blb-border );
+    border-radius:   var( --blb-radius-btn );
+    color:           var( --blb-text );
     cursor:          pointer;
-    transition:      background 0.2s ease;
+    transition:      background var( --blb-transition ),
+                     border-color var( --blb-transition ),
+                     box-shadow var( --blb-transition );
+    pointer-events:  auto;
+    user-select:     none;
+    -webkit-user-select: none;
+    flex-shrink:     0;
 }
+
+.blb-btn:hover {
+    background:   var( --blb-surface-hover );
+    border-color: rgba( 255, 255, 255, 0.22 );
+    box-shadow:   0 0 0 1px rgba( 255, 255, 255, 0.08 );
+}
+
+.blb-btn:active {
+    background: var( --blb-surface );
+    box-shadow: none;
+}
+
+.blb-btn:focus-visible {
+    outline:        2px solid var( --blb-accent );
+    outline-offset: 2px;
+}
+
+/* ── Botón cerrar ──────────────────────────────────────────────────────────── */
+
+.blb-close {
+    position: fixed;
+    top:      10px;
+    right:    12px;
+    z-index:  100003;
+}
+
+.blb-close svg {
+    width:  18px;
+    height: 18px;
+    stroke: var( --blb-text );
+    fill:   none;
+    stroke-width: 2;
+    stroke-linecap: round;
+}
+
+/* ── Contador (pill) ───────────────────────────────────────────────────────── */
+
+.blb-counter {
+    position:        fixed;
+    top:             18px;
+    left:            50%;
+    transform:       translateX( -50% );
+    z-index:         100003;
+    display:         flex;
+    align-items:     center;
+    gap:             4px;
+    padding:         6px 14px;
+    background:      var( --blb-surface );
+    backdrop-filter: blur( 12px );
+    -webkit-backdrop-filter: blur( 12px );
+    border:          1px solid var( --blb-border );
+    border-radius:   999px;
+    font-size:       12px;
+    font-family:     system-ui, -apple-system, sans-serif;
+    font-weight:     600;
+    letter-spacing:  0.5px;
+    color:           var( --blb-text );
+    white-space:     nowrap;
+    pointer-events:  none;
+}
+
+.blb-counter-current { color: var( --blb-accent ); }
+.blb-counter-sep     { color: var( --blb-text-muted ); margin: 0 1px; }
+.blb-counter-total   { color: var( --blb-text-muted ); }
+
+/* ── Botones prev / next — FIJOS, no se mueven ─────────────────────────────── */
 
 .blb-prev,
 .blb-next {
-    position:        fixed;
-    top:             50%;
-    transform:       translateY( -50% );
-    z-index:         100001;
-    width:           52px;
-    height:          52px;
-    display:         flex;
-    align-items:     center;
-    justify-content: center;
-    background:      rgba( 255, 255, 255, 0.12 );
-    border:          1px solid rgba( 255, 255, 255, 0.3 );
-    border-radius:   50%;
-    color:           #fff;
-    font-size:       24px;
-    line-height:     1;
-    cursor:          pointer;
-    transition:      background 0.2s ease;
-    user-select:     none;
+    position:  fixed;
+    top:       50%;
+    transform: translateY( -50% );
+    z-index:   100002;
+    width:     48px;
+    height:    48px;
+    border-radius: 14px;
 }
 
 .blb-prev { left:  16px; }
 .blb-next { right: 16px; }
 
-.blb-close:hover,
-.blb-prev:hover,
-.blb-next:hover { background: rgba( 255, 255, 255, 0.28 ); }
+.blb-prev svg,
+.blb-next svg {
+    width:  22px;
+    height: 22px;
+    stroke: var( --blb-text );
+    fill:   none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
 
-.blb-close:focus-visible,
-.blb-prev:focus-visible,
-.blb-next:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+/* ── Área de imagen ────────────────────────────────────────────────────────── */
 
 .blb-img-wrap {
     position:        fixed;
-    inset:           0;
-    z-index:         100000;
+    top:             60px;
+    bottom:          0;
+    left:            80px;
+    right:           80px;
+    z-index:         100001;
     display:         flex;
+    flex-direction:  column;
     align-items:     center;
     justify-content: center;
+    gap:             0;
     pointer-events:  none;
 }
 
-.blb-img {
-    display:         block;
-    max-width:       calc( 100vw - 140px );
-    max-height:      calc( 100vh - 80px );
-    object-fit:      contain;
-    border-radius:   6px;
-    box-shadow:      0 12px 60px rgba( 0, 0, 0, 0.7 );
-    pointer-events:  auto;
-    user-select:     none;
-    -webkit-user-drag: none;
+/* con thumbnails activos, reducir espacio inferior */
+.bunny-lightbox-overlay[data-thumbs="1"] .blb-img-wrap {
+    bottom: 110px;
 }
 
-.blb-counter {
-    position:       fixed;
-    bottom:         20px;
-    left:           50%;
-    transform:      translateX( -50% );
-    z-index:        100001;
-    font-size:      13px;
-    font-family:    sans-serif;
-    color:          rgba( 255, 255, 255, 0.75 );
-    white-space:    nowrap;
-    pointer-events: none;
-    background:     rgba( 0, 0, 0, 0.4 );
-    padding:        4px 12px;
-    border-radius:  20px;
-    letter-spacing: 0.5px;
+/* con caption, ajustar */
+.bunny-lightbox-overlay[data-caption]:not( [data-caption=""] ) .blb-img-wrap {
+    bottom: 0;
+    padding-bottom: 64px;
 }
+
+.bunny-lightbox-overlay[data-thumbs="1"][data-caption]:not( [data-caption=""] ) .blb-img-wrap {
+    bottom: 110px;
+    padding-bottom: 56px;
+}
+
+.blb-img {
+    display:    block;
+    max-width:  100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 20px 80px rgba( 0, 0, 0, 0.55 );
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-drag: none;
+    transition: opacity 0.25s ease;
+}
+
+/* ── Caption / metadata ────────────────────────────────────────────────────── */
+
+.blb-caption {
+    position:        fixed;
+    bottom:          0;
+    left:            0;
+    right:           0;
+    z-index:         100002;
+    padding:         14px 80px 16px;
+    display:         flex;
+    flex-direction:  column;
+    gap:             4px;
+    pointer-events:  none;
+    text-align:      center;
+}
+
+.bunny-lightbox-overlay[data-thumbs="1"] .blb-caption {
+    bottom: 104px;
+}
+
+.blb-caption[hidden] { display: none; }
+
+.blb-caption-title {
+    font-size:   14px;
+    font-weight: 600;
+    font-family: system-ui, -apple-system, sans-serif;
+    color:       var( --blb-text );
+    margin:      0;
+    white-space: nowrap;
+    overflow:    hidden;
+    text-overflow: ellipsis;
+}
+
+.blb-caption-text {
+    font-size:   12px;
+    font-family: system-ui, -apple-system, sans-serif;
+    color:       var( --blb-text-muted );
+    margin:      0;
+    white-space: nowrap;
+    overflow:    hidden;
+    text-overflow: ellipsis;
+}
+
+/* full mode: multi-línea */
+.blb-caption--full .blb-caption-title,
+.blb-caption--full .blb-caption-text {
+    white-space: normal;
+}
+
+/* ── Thumbnails rail ───────────────────────────────────────────────────────── */
+
+.blb-thumbs {
+    position:         fixed;
+    bottom:           0;
+    left:             0;
+    right:            0;
+    z-index:          100002;
+    height:           96px;
+    display:          flex;
+    align-items:      center;
+    gap:              8px;
+    padding:          0 16px 8px;
+    overflow-x:       auto;
+    overflow-y:       hidden;
+    scrollbar-width:  none;
+    -ms-overflow-style: none;
+    background:       linear-gradient( to top, var( --blb-bg ) 60%, transparent );
+    scroll-behavior:  smooth;
+}
+
+.blb-thumbs::-webkit-scrollbar { display: none; }
+
+.blb-thumbs[hidden] { display: none; }
+
+.blb-thumb {
+    flex-shrink:   0;
+    width:         64px;
+    height:        64px;
+    border-radius: 8px;
+    overflow:      hidden;
+    cursor:        pointer;
+    border:        2px solid transparent;
+    transition:    border-color var( --blb-transition ),
+                   opacity var( --blb-transition ),
+                   transform var( --blb-transition );
+    opacity:       0.55;
+}
+
+.blb-thumb img {
+    width:      100%;
+    height:     100%;
+    object-fit: cover;
+    display:    block;
+    pointer-events: none;
+    user-select: none;
+}
+
+.blb-thumb:hover {
+    opacity:   0.85;
+    transform: scale( 1.06 );
+}
+
+.blb-thumb.is-active {
+    border-color: var( --blb-accent );
+    opacity:      1;
+    transform:    scale( 1.08 );
+}
+
+/* ── Mobile ────────────────────────────────────────────────────────────────── */
 
 @media ( max-width: 600px ) {
-    .blb-prev { left:  8px; }
-    .blb-next { right: 8px; }
-    .blb-prev, .blb-next { width: 42px; height: 42px; font-size: 20px; }
-    .blb-img { max-width: calc( 100vw - 100px ); max-height: calc( 100vh - 100px ); }
+    .blb-prev { left:  8px; width: 40px; height: 40px; }
+    .blb-next { right: 8px; width: 40px; height: 40px; }
+
+    .blb-img-wrap {
+        left:  56px;
+        right: 56px;
+        top:   56px;
+    }
+
+    .bunny-lightbox-overlay[data-thumbs="1"] .blb-img-wrap {
+        bottom: 100px;
+    }
+
+    .blb-caption {
+        padding: 10px 56px 12px;
+        font-size: 12px;
+    }
+
+    .blb-thumb {
+        width:  52px;
+        height: 52px;
+    }
+
+    .blb-thumbs {
+        height: 80px;
+        padding: 0 8px 6px;
+    }
+
+    .bunny-lightbox-overlay[data-thumbs="1"] .blb-caption {
+        bottom: 86px;
+    }
 }

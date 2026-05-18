@@ -1,6 +1,6 @@
 /**
  * Bunny SFW&NSFW Gallery — frontend.js
- * @since 0.3.1
+ * @since 0.4.0
  */
 
 ( function () {
@@ -44,8 +44,21 @@
     var CLASS_LOCKED  = 'locked';
 
     /* ══════════════════════════════════════════════════════════════════════════
-     *  LIGHTBOX (sin cambios respecto a 0.3.0)
+     *  LIGHTBOX v0.4.0 — rediseño completo premium
      * ══════════════════════════════════════════════════════════════════════════ */
+
+    // Leer settings globales inyectados por PHP (bunnyGalleryLightbox)
+    var LB_CFG = window.bunnyGalleryLightbox || {};
+    var LB_SHOW_THUMBS    = LB_CFG.show_lightbox_thumbnails === '1'; // '1' | '0' — wp_localize_script serializa bool como string
+    var LB_THEME          = LB_CFG.lightbox_theme            || 'dark'; // dark|light|auto
+    var LB_ACCENT         = LB_CFG.lightbox_accent_color     || '#7c6aff';
+    var LB_CAPTION_FIELDS = LB_CFG.lightbox_caption_fields   || [];     // ['title','alt','caption','description']
+    var LB_CAPTION_MODE   = LB_CFG.lightbox_caption_mode     || 'minimal'; // hidden|minimal|full
+
+    // SVG icons inline
+    var SVG_CLOSE = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    var SVG_PREV  = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polyline points="15 18 9 12 15 6"/></svg>';
+    var SVG_NEXT  = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polyline points="9 18 15 12 9 6"/></svg>';
 
     function BunnyLightbox( wrapper ) {
         this.wrapper   = wrapper;
@@ -53,7 +66,14 @@
         this.current   = 0;
         this.overlay   = null;
         this.images    = Array.from( wrapper.querySelectorAll( '.bunny-gallery-item' ) ).map( function ( item ) {
-            return { src: item.dataset.full || '', alt: item.dataset.alt || '' };
+            return {
+                src:         item.dataset.full        || '',
+                thumb:       item.dataset.thumb       || ( item.querySelector( 'img' ) ? item.querySelector( 'img' ).src : '' ),
+                alt:         item.dataset.alt         || '',
+                title:       item.dataset.title       || '',
+                caption:     item.dataset.caption     || '',
+                description: item.dataset.description || '',
+            };
         } );
         this._bindItems();
     }
@@ -85,63 +105,209 @@
 
     BunnyLightbox.prototype._render = function () {
         if ( ! this.overlay ) return;
+        var self  = this;
         var img   = this.images[ this.current ];
         var imgEl = this.overlay.querySelector( '.blb-img' );
+
+        // fade transition
         imgEl.style.opacity = '0';
         imgEl.src = img.src;
         imgEl.alt = img.alt;
         imgEl.onload = function () { imgEl.style.opacity = '1'; };
-        if ( imgEl.complete ) imgEl.style.opacity = '1';
-        this.overlay.querySelector( '.blb-counter' ).textContent = ( this.current + 1 ) + ' / ' + this.images.length;
+        if ( imgEl.complete && imgEl.naturalWidth ) imgEl.style.opacity = '1';
+
+        // counter: partes separadas para color accent en current
+        var counterEl = this.overlay.querySelector( '.blb-counter' );
+        var cur  = this.overlay.querySelector( '.blb-counter-current' );
+        var sep  = this.overlay.querySelector( '.blb-counter-sep' );
+        var tot  = this.overlay.querySelector( '.blb-counter-total' );
+        if ( cur ) cur.textContent = ( this.current + 1 );
+        if ( sep ) sep.textContent = '/';
+        if ( tot ) tot.textContent = this.images.length;
+
+        // nav buttons visibility
         var showNav = this.images.length > 1;
-        this.overlay.querySelector( '.blb-prev' ).style.display = showNav ? 'flex' : 'none';
-        this.overlay.querySelector( '.blb-next' ).style.display = showNav ? 'flex' : 'none';
+        var btnPrev = this.overlay.querySelector( '.blb-prev' );
+        var btnNext = this.overlay.querySelector( '.blb-next' );
+        if ( btnPrev ) btnPrev.style.display = showNav ? 'flex' : 'none';
+        if ( btnNext ) btnNext.style.display = showNav ? 'flex' : 'none';
+
+        // caption
+        this._renderCaption( img );
+
+        // thumbnails active state
+        this._updateThumbActive();
+    };
+
+    BunnyLightbox.prototype._renderCaption = function ( img ) {
+        var captionEl = this.overlay.querySelector( '.blb-caption' );
+        if ( ! captionEl ) return;
+        if ( LB_CAPTION_MODE === 'hidden' || LB_CAPTION_FIELDS.length === 0 ) {
+            captionEl.setAttribute( 'hidden', '' );
+            return;
+        }
+
+        var titleText = '';
+        var bodyParts = [];
+
+        // En modo minimal: solo title (si en fields) + una sola línea de texto
+        // En modo full: todo lo que esté en fields
+        var fields = LB_CAPTION_FIELDS;
+        fields.forEach( function ( f ) {
+            var val = img[ f ] || img.alt || '';
+            if ( f === 'alt' )         val = img.alt         || '';
+            if ( f === 'title' )       val = img.title       || '';
+            if ( f === 'caption' )     val = img.caption     || '';
+            if ( f === 'description' ) val = img.description || '';
+            if ( ! val ) return;
+            if ( f === 'title' && ! titleText ) {
+                titleText = val;
+            } else {
+                bodyParts.push( val );
+            }
+        } );
+
+        if ( LB_CAPTION_MODE === 'minimal' ) {
+            bodyParts = bodyParts.slice( 0, 1 ); // solo la primera línea extra
+        }
+
+        var hasContent = titleText || bodyParts.length > 0;
+        if ( ! hasContent ) {
+            captionEl.setAttribute( 'hidden', '' );
+            return;
+        }
+
+        captionEl.removeAttribute( 'hidden' );
+        captionEl.className = 'blb-caption' + ( LB_CAPTION_MODE === 'full' ? ' blb-caption--full' : '' );
+
+        var titleNode = captionEl.querySelector( '.blb-caption-title' );
+        var textNode  = captionEl.querySelector( '.blb-caption-text'  );
+        if ( titleNode ) titleNode.textContent = titleText;
+        if ( textNode  ) textNode.textContent  = bodyParts.join( ' · ' );
+        if ( titleNode ) titleNode.style.display = titleText     ? '' : 'none';
+        if ( textNode  ) textNode.style.display  = bodyParts.length ? '' : 'none';
+
+        // actualizar data-caption para que el CSS ajuste el img-wrap
+        this.overlay.dataset.caption = hasContent ? '1' : '';
+    };
+
+    BunnyLightbox.prototype._updateThumbActive = function () {
+        var self   = this;
+        var thumbs = this.overlay ? this.overlay.querySelectorAll( '.blb-thumb' ) : [];
+        thumbs.forEach( function ( t, i ) {
+            if ( i === self.current ) {
+                t.classList.add( 'is-active' );
+                // scroll into view
+                t.scrollIntoView( { behavior: 'smooth', block: 'nearest', inline: 'center' } );
+            } else {
+                t.classList.remove( 'is-active' );
+            }
+        } );
     };
 
     BunnyLightbox.prototype._buildOverlay = function () {
-        var self    = this;
-        var root    = document.createElement( 'div' );
+        var self = this;
+
+        var root = document.createElement( 'div' );
         root.className = 'bunny-lightbox-overlay';
         root.setAttribute( 'hidden', '' );
         root.setAttribute( 'role', 'dialog' );
         root.setAttribute( 'aria-modal', 'true' );
         root.setAttribute( 'aria-label', 'Visor de imágenes' );
         root.setAttribute( 'tabindex', '-1' );
-        root.dataset.for = this.galleryId;
+        root.dataset.for   = this.galleryId;
+        root.dataset.theme = LB_THEME;
+        root.dataset.thumbs = ( LB_SHOW_THUMBS && this.images.length > 1 ) ? '1' : '0';
+        root.style.setProperty( '--bunny-accent', LB_ACCENT );
 
+        // Backdrop
         var backdrop = document.createElement( 'div' );
         backdrop.className = 'blb-backdrop';
         backdrop.addEventListener( 'click', function () { self.close(); } );
 
+        // Close button
         var btnClose = document.createElement( 'button' );
-        btnClose.className = 'blb-close'; btnClose.type = 'button';
-        btnClose.setAttribute( 'aria-label', 'Cerrar' ); btnClose.innerHTML = '&times;';
+        btnClose.className = 'blb-btn blb-close';
+        btnClose.type = 'button';
+        btnClose.setAttribute( 'aria-label', 'Cerrar' );
+        btnClose.innerHTML = SVG_CLOSE;
         btnClose.addEventListener( 'click', function () { self.close(); } );
 
+        // Prev button
         var btnPrev = document.createElement( 'button' );
-        btnPrev.className = 'blb-prev'; btnPrev.type = 'button';
-        btnPrev.setAttribute( 'aria-label', 'Imagen anterior' ); btnPrev.innerHTML = '&#8592;';
+        btnPrev.className = 'blb-btn blb-prev';
+        btnPrev.type = 'button';
+        btnPrev.setAttribute( 'aria-label', 'Imagen anterior' );
+        btnPrev.innerHTML = SVG_PREV;
         btnPrev.addEventListener( 'click', function () { self.prev(); } );
 
+        // Next button
         var btnNext = document.createElement( 'button' );
-        btnNext.className = 'blb-next'; btnNext.type = 'button';
-        btnNext.setAttribute( 'aria-label', 'Imagen siguiente' ); btnNext.innerHTML = '&#8594;';
+        btnNext.className = 'blb-btn blb-next';
+        btnNext.type = 'button';
+        btnNext.setAttribute( 'aria-label', 'Imagen siguiente' );
+        btnNext.innerHTML = SVG_NEXT;
         btnNext.addEventListener( 'click', function () { self.next(); } );
 
+        // Image wrap
         var imgWrap = document.createElement( 'div' );
         imgWrap.className = 'blb-img-wrap';
         var imgEl = document.createElement( 'img' );
-        imgEl.className = 'blb-img'; imgEl.src = ''; imgEl.alt = '';
-        imgEl.style.opacity = '0'; imgEl.style.transition = 'opacity 0.2s ease';
+        imgEl.className = 'blb-img';
+        imgEl.src = ''; imgEl.alt = '';
         imgWrap.appendChild( imgEl );
 
-        var counter = document.createElement( 'span' );
+        // Counter (pill)
+        var counter = document.createElement( 'div' );
         counter.className = 'blb-counter';
+        counter.setAttribute( 'aria-live', 'polite' );
+        var curSpan = document.createElement( 'span' ); curSpan.className = 'blb-counter-current';
+        var sepSpan = document.createElement( 'span' ); sepSpan.className = 'blb-counter-sep'; sepSpan.textContent = '/';
+        var totSpan = document.createElement( 'span' ); totSpan.className = 'blb-counter-total';
+        counter.appendChild( curSpan ); counter.appendChild( sepSpan ); counter.appendChild( totSpan );
 
-        root.appendChild( backdrop ); root.appendChild( btnClose );
-        root.appendChild( btnPrev );  root.appendChild( imgWrap );
-        root.appendChild( btnNext );  root.appendChild( counter );
+        // Caption
+        var caption = document.createElement( 'div' );
+        caption.className = 'blb-caption';
+        caption.setAttribute( 'hidden', '' );
+        var captTitle = document.createElement( 'p' ); captTitle.className = 'blb-caption-title';
+        var captText  = document.createElement( 'p' ); captText.className  = 'blb-caption-text';
+        caption.appendChild( captTitle ); caption.appendChild( captText );
 
+        // Thumbnails rail — solo se crea si el setting está activo
+        if ( LB_SHOW_THUMBS && this.images.length > 1 ) {
+            var thumbsEl = document.createElement( 'div' );
+            thumbsEl.className = 'blb-thumbs';
+            this.images.forEach( function ( img, i ) {
+                var thumb = document.createElement( 'div' );
+                thumb.className = 'blb-thumb';
+                thumb.setAttribute( 'role', 'button' );
+                thumb.setAttribute( 'tabindex', '0' );
+                thumb.setAttribute( 'aria-label', 'Imagen ' + ( i + 1 ) );
+                var tImg = document.createElement( 'img' );
+                tImg.src     = img.thumb || img.src;
+                tImg.alt     = '';
+                tImg.loading = 'lazy';
+                thumb.appendChild( tImg );
+                thumb.addEventListener( 'click', function () { self.current = i; self._render(); } );
+                thumb.addEventListener( 'keydown', function ( e ) {
+                    if ( e.key === 'Enter' || e.key === ' ' ) { e.preventDefault(); self.current = i; self._render(); }
+                } );
+                thumbsEl.appendChild( thumb );
+            } );
+            root.appendChild( thumbsEl );
+        }
+
+        // Assemble — thumbsEl ya fue appendeado condicionalmente arriba
+        root.appendChild( backdrop );
+        root.appendChild( btnClose );
+        root.appendChild( counter );
+        root.appendChild( btnPrev );
+        root.appendChild( imgWrap );
+        root.appendChild( btnNext );
+        root.appendChild( caption );
+
+        // Touch swipe
         var touchX = 0;
         root.addEventListener( 'touchstart', function ( e ) { touchX = e.changedTouches[ 0 ].screenX; }, { passive: true } );
         root.addEventListener( 'touchend',   function ( e ) {
@@ -149,6 +315,7 @@
             if ( Math.abs( d ) > 50 ) { d < 0 ? self.next() : self.prev(); }
         }, { passive: true } );
 
+        // Keyboard
         document.addEventListener( 'keydown', function ( e ) {
             if ( root.hasAttribute( 'hidden' ) ) return;
             if ( e.key === 'Escape'     ) { e.preventDefault(); self.close(); }

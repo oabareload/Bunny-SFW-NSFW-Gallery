@@ -29,6 +29,12 @@ function bunny_gallery_hardcoded_defaults(): array {
         // 0.3.1
         'nsfw_display_style' => 'minimal',  // minimal | overlay | hidden
         'unlock_button_text' => 'Ver contenido (+18)',
+        // 0.4.0 — Lightbox
+        'show_lightbox_thumbnails' => true,
+        'lightbox_theme'           => 'dark',   // dark | light | auto
+        'lightbox_accent_color'    => '#7c6aff',
+        'lightbox_caption_fields'  => [],       // array: alt|title|caption|description
+        'lightbox_caption_mode'    => 'minimal', // hidden | minimal | full
     ];
 }
 
@@ -69,9 +75,10 @@ function bunny_gallery_register_settings(): void {
         ]
     );
 
-    add_settings_section( 'bunny_section_gallery', 'Galería',         '__return_false', 'bunny-gallery-settings' );
-    add_settings_section( 'bunny_section_nsfw',    'Protección NSFW', '__return_false', 'bunny-gallery-settings' );
-    add_settings_section( 'bunny_section_titles',  'Títulos',         '__return_false', 'bunny-gallery-settings' );
+    add_settings_section( 'bunny_section_gallery',  'Galería',         '__return_false', 'bunny-gallery-settings' );
+    add_settings_section( 'bunny_section_nsfw',     'Protección NSFW', '__return_false', 'bunny-gallery-settings' );
+    add_settings_section( 'bunny_section_titles',   'Títulos',         '__return_false', 'bunny-gallery-settings' );
+    add_settings_section( 'bunny_section_lightbox', 'Lightbox',        '__return_false', 'bunny-gallery-settings' );
 
     // Galería
     add_settings_field( 'columns',       'Columnas por defecto',     'bunny_field_columns',       'bunny-gallery-settings', 'bunny_section_gallery' );
@@ -90,6 +97,13 @@ function bunny_gallery_register_settings(): void {
     // Títulos
     add_settings_field( 'sfw_title',  'Título galería SFW',  'bunny_field_sfw_title',  'bunny-gallery-settings', 'bunny_section_titles' );
     add_settings_field( 'nsfw_title', 'Título galería NSFW', 'bunny_field_nsfw_title', 'bunny-gallery-settings', 'bunny_section_titles' );
+
+    // Lightbox (0.4.0)
+    add_settings_field( 'show_lightbox_thumbnails', 'Miniaturas en lightbox',  'bunny_field_lightbox_thumbs',         'bunny-gallery-settings', 'bunny_section_lightbox' );
+    add_settings_field( 'lightbox_theme',           'Tema del lightbox',       'bunny_field_lightbox_theme',          'bunny-gallery-settings', 'bunny_section_lightbox' );
+    add_settings_field( 'lightbox_accent_color',    'Color de acento',         'bunny_field_lightbox_accent',         'bunny-gallery-settings', 'bunny_section_lightbox' );
+    add_settings_field( 'lightbox_caption_fields',  'Campos de caption',       'bunny_field_lightbox_caption_fields', 'bunny-gallery-settings', 'bunny_section_lightbox' );
+    add_settings_field( 'lightbox_caption_mode',    'Modo de caption',         'bunny_field_lightbox_caption_mode',   'bunny-gallery-settings', 'bunny_section_lightbox' );
 }
 add_action( 'admin_init', 'bunny_gallery_register_settings' );
 
@@ -130,6 +144,25 @@ function bunny_gallery_sanitize_options( $input ): array {
     $clean['unlock_button_text'] = sanitize_text_field( $input['unlock_button_text'] ?? $d['unlock_button_text'] );
     $clean['sfw_title']          = sanitize_text_field( $input['sfw_title']           ?? '' );
     $clean['nsfw_title']         = sanitize_text_field( $input['nsfw_title']          ?? '' );
+
+    // 0.4.0 — Lightbox
+    $clean['show_lightbox_thumbnails'] = ! empty( $input['show_lightbox_thumbnails'] );
+
+    $allowed_themes          = [ 'dark', 'light', 'auto' ];
+    $clean['lightbox_theme'] = in_array( $input['lightbox_theme'] ?? '', $allowed_themes, true )
+                               ? $input['lightbox_theme'] : $d['lightbox_theme'];
+
+    $accent = sanitize_hex_color( $input['lightbox_accent_color'] ?? '' );
+    $clean['lightbox_accent_color'] = $accent ?: $d['lightbox_accent_color'];
+
+    $allowed_caption_fields = [ 'alt', 'title', 'caption', 'description' ];
+    $raw_fields = $input['lightbox_caption_fields'] ?? [];
+    if ( ! is_array( $raw_fields ) ) $raw_fields = [];
+    $clean['lightbox_caption_fields'] = array_values( array_intersect( $raw_fields, $allowed_caption_fields ) );
+
+    $allowed_caption_modes          = [ 'hidden', 'minimal', 'full' ];
+    $clean['lightbox_caption_mode'] = in_array( $input['lightbox_caption_mode'] ?? '', $allowed_caption_modes, true )
+                                      ? $input['lightbox_caption_mode'] : $d['lightbox_caption_mode'];
 
     return $clean;
 }
@@ -298,4 +331,63 @@ function bunny_field_nsfw_title(): void {
     $val  = $opts['nsfw_title'] ?? '';
     echo '<input type="text" class="large-text" name="' . BUNNY_GALLERY_OPTION . '[nsfw_title]" value="' . esc_attr( $val ) . '" placeholder="Ej: Contenido para adultos">';
     echo '<p class="description">Dejar vacío para no mostrar título.</p>';
+}
+
+// 0.4.0 — Lightbox field renderers
+
+function bunny_field_lightbox_thumbs(): void {
+    $opts = get_option( BUNNY_GALLERY_OPTION, [] );
+    $val  = $opts['show_lightbox_thumbnails'] ?? bunny_gallery_hardcoded_defaults()['show_lightbox_thumbnails'];
+    echo '<input type="checkbox" name="' . BUNNY_GALLERY_OPTION . '[show_lightbox_thumbnails]" value="1"' . checked( (bool) $val, true, false ) . '>';
+    echo '<p class="description">Muestra un carril de miniaturas en la parte inferior del lightbox. Usa el tamaño thumbnail de WordPress.</p>';
+}
+
+function bunny_field_lightbox_theme(): void {
+    $opts    = get_option( BUNNY_GALLERY_OPTION, [] );
+    $current = $opts['lightbox_theme'] ?? bunny_gallery_hardcoded_defaults()['lightbox_theme'];
+    $options = [ 'dark' => 'Dark — fondo oscuro elegante', 'light' => 'Light — fondo claro (estilo iOS Photos)', 'auto' => 'Auto — sigue prefers-color-scheme del sistema' ];
+    echo '<select name="' . BUNNY_GALLERY_OPTION . '[lightbox_theme]">';
+    foreach ( $options as $k => $label ) {
+        echo '<option value="' . esc_attr( $k ) . '"' . selected( $current, $k, false ) . '>' . esc_html( $label ) . '</option>';
+    }
+    echo '</select>';
+}
+
+function bunny_field_lightbox_accent(): void {
+    $opts = get_option( BUNNY_GALLERY_OPTION, [] );
+    $val  = $opts['lightbox_accent_color'] ?? bunny_gallery_hardcoded_defaults()['lightbox_accent_color'];
+    echo '<input type="color" name="' . BUNNY_GALLERY_OPTION . '[lightbox_accent_color]" value="' . esc_attr( $val ) . '">';
+    echo '<p class="description">Color usado en miniatura activa, hover, counter y focus states.</p>';
+}
+
+function bunny_field_lightbox_caption_fields(): void {
+    $opts    = get_option( BUNNY_GALLERY_OPTION, [] );
+    $current = $opts['lightbox_caption_fields'] ?? bunny_gallery_hardcoded_defaults()['lightbox_caption_fields'];
+    if ( ! is_array( $current ) ) $current = [];
+    $fields  = [ 'alt' => 'ALT', 'title' => 'Título', 'caption' => 'Caption', 'description' => 'Descripción' ];
+    echo '<fieldset><legend class="screen-reader-text">Campos de caption</legend>';
+    foreach ( $fields as $k => $label ) {
+        $checked = in_array( $k, $current, true ) ? ' checked' : '';
+        echo '<label style="margin-right:16px;">';
+        echo '<input type="checkbox" name="' . BUNNY_GALLERY_OPTION . '[lightbox_caption_fields][]" value="' . esc_attr( $k ) . '"' . $checked . '> ';
+        echo esc_html( $label );
+        echo '</label>';
+    }
+    echo '</fieldset>';
+    echo '<p class="description">Campos a mostrar bajo la imagen. Si no se selecciona ninguno, el caption queda oculto.</p>';
+}
+
+function bunny_field_lightbox_caption_mode(): void {
+    $opts    = get_option( BUNNY_GALLERY_OPTION, [] );
+    $current = $opts['lightbox_caption_mode'] ?? bunny_gallery_hardcoded_defaults()['lightbox_caption_mode'];
+    $options = [
+        'hidden'  => 'Hidden — nunca mostrar caption',
+        'minimal' => 'Minimal — título + una línea de texto',
+        'full'    => 'Full — todos los campos seleccionados',
+    ];
+    echo '<select name="' . BUNNY_GALLERY_OPTION . '[lightbox_caption_mode]">';
+    foreach ( $options as $k => $label ) {
+        echo '<option value="' . esc_attr( $k ) . '"' . selected( $current, $k, false ) . '>' . esc_html( $label ) . '</option>';
+    }
+    echo '</select>';
 }

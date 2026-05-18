@@ -6,7 +6,7 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 
 ## Versión actual
 
-**0.3.1** — Sistema NSFW visual mejorado: display styles, modal elegante, reset de cookie
+**0.4.1** — Fix: `show_lightbox_thumbnails` ahora desactiva correctamente el thumbnails rail
 
 ---
 
@@ -64,6 +64,16 @@ Ubicación: **Bunny Gallery** (menú lateral de WordPress Admin)
 |--------------|-----------------------------------------------|---------|
 | Título SFW   | Título por defecto para galerías SFW          | vacío   |
 | Título NSFW  | Título por defecto para galerías NSFW         | vacío   |
+
+### Sección: Lightbox
+
+| Setting                    | Descripción                                                        | Default   |
+|----------------------------|---------------------------------------------------------------------|-----------|
+| Miniaturas en lightbox     | Carrusel horizontal inferior con thumbnails WP de la galería actual | `true`    |
+| Tema del lightbox          | `dark` / `light` / `auto` (sigue `prefers-color-scheme`)           | `dark`    |
+| Color de acento            | Color picker — thumbnail activo, counter y focus states            | `#7c6aff` |
+| Campos de caption          | Checkboxes: `alt` / `title` / `caption` / `description`            | ninguno   |
+| Modo de caption            | `hidden` / `minimal` (título + 1 línea) / `full` (todos los campos) | `minimal` |
 
 ---
 
@@ -184,6 +194,28 @@ hardcoded fallback (bunny_gallery_hardcoded_defaults())
 ---
 
 ## Changelog
+
+### 0.4.1 — 2025-05
+- **Fix:** `show_lightbox_thumbnails = false` no desactivaba el thumbnails rail — el carrusel seguía apareciendo
+- **Fix (PHP):** `wp_localize_script` serializa `bool` como string vacío `""` al pasar `false`; ahora se emite `'1'` / `'0'` de forma explícita
+- **Fix (JS):** La condición `!== false` no atrapaba el string vacío; reemplazada por comparación estricta `=== '1'`
+- **Mejora:** El elemento `thumbsEl` ya no se crea ni se monta en el DOM cuando el setting está desactivado — cero nodos, cero listeners, cero espacio reservado
+- **Mejora:** `data-thumbs` en el overlay refleja el estado real → el CSS no reserva el espacio inferior de 110px innecesariamente
+
+### 0.4.0 — 2025-05
+- **Nuevo:** Rediseño completo del lightbox UI — estilo moderno premium (inspirado en Patreon / Pixiv / iOS Photos)
+- **Nuevo:** Botones prev/next/close reemplazados por icon buttons SVG con `backdrop-filter: blur`, border sutil y border-radius rectangular
+- **Nuevo:** Layout 100% `position: fixed` — botones estables, no se mueven con el tamaño de imagen
+- **Nuevo:** Counter convertido a pill UI con número actual en accent color
+- **Nuevo:** Animación fade-in al abrir el lightbox; fade de opacidad al cambiar imagen
+- **Nuevo:** Setting global `lightbox_theme` — `dark` / `light` / `auto` (respeta `prefers-color-scheme`)
+- **Nuevo:** Setting global `lightbox_accent_color` — color picker, aplicado a thumbnail activo, counter y focus states
+- **Nuevo:** Setting global `show_lightbox_thumbnails` — carrusel horizontal inferior de miniaturas (thumbnail WP, solo galería actual)
+- **Nuevo:** Setting global `lightbox_caption_fields` — campos configurables: `alt`, `title`, `caption`, `description`
+- **Nuevo:** Setting global `lightbox_caption_mode` — `hidden` / `minimal` / `full`
+- **Nuevo:** `data-thumb`, `data-title`, `data-caption`, `data-description` emitidos por `render_callback`
+- **Nuevo:** CSS variables completas en `.bunny-lightbox-overlay` (`--blb-bg`, `--blb-surface`, `--blb-accent`, etc.)
+- **Fix:** Hover de botones prev/next eliminaba `transform: translateY(-50%)` causando salto del cursor; reemplazado por hover puramente visual (background + border + box-shadow)
 
 ### 0.3.1 — 2025-05
 - **Nuevo:** Setting `nsfw_display_style`: `minimal` / `overlay` / `hidden`

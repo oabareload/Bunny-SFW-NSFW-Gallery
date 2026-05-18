@@ -53,6 +53,18 @@ class Plugin {
             BUNNY_NSWF_VERSION,
             true
         );
+
+        // Exponer settings del lightbox al frontend JS
+        // Nota: wp_localize_script serializa booleanos como "" / "1".
+        // Usamos strings explícitos que el JS puede comparar sin ambigüedad.
+        $d = bunny_gallery_get_effective_defaults();
+        wp_localize_script( 'bunny-nsfw-block-frontend', 'bunnyGalleryLightbox', [
+            'show_lightbox_thumbnails' => $d['show_lightbox_thumbnails'] ? '1' : '0',
+            'lightbox_theme'           => $d['lightbox_theme'],
+            'lightbox_accent_color'    => $d['lightbox_accent_color'],
+            'lightbox_caption_fields'  => (array) $d['lightbox_caption_fields'],
+            'lightbox_caption_mode'    => $d['lightbox_caption_mode'],
+        ] );
         wp_register_style(
             'bunny-nsfw-block-style',
             BUNNY_NSWF_PLUGIN_URL . 'blocks/nsfw-gallery/style.css',
@@ -114,7 +126,20 @@ class Plugin {
                     $alt  = get_post_meta( $id, '_wp_attachment_image_alt', true );
                     if ( ! $url ) continue;
                 ?>
-                    <div class="bunny-gallery-item" data-full="<?php echo esc_url( $full ); ?>" data-alt="<?php echo esc_attr( $alt ); ?>">
+                    <div class="bunny-gallery-item"
+                         data-full="<?php echo esc_url( $full ); ?>"
+                         data-thumb="<?php echo esc_url( wp_get_attachment_image_url( $id, 'thumbnail' ) ?: $url ); ?>"
+                         data-alt="<?php echo esc_attr( $alt ); ?>"
+                         data-title="<?php echo esc_attr( get_the_title( $id ) ); ?>"
+                         data-caption="<?php
+                             $attachment = get_post( $id );
+                             echo $attachment ? esc_attr( $attachment->post_excerpt ) : '';
+                         ?>"
+                         data-description="<?php
+                             $attachment = get_post( $id );
+                             echo $attachment ? esc_attr( $attachment->post_content ) : '';
+                         ?>"
+                    >
                         <?php if ( in_array( $link_behavior, [ 'file', 'attachment' ], true ) ) :
                             $href = $link_behavior === 'file' ? $full : get_attachment_link( $id );
                         ?>
