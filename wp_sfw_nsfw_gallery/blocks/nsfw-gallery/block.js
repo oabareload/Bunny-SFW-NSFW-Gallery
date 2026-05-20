@@ -56,7 +56,8 @@
     // -------------------------------------------------------------------------
 
     registerBlock( 'bunny/nsfw-gallery', {
-
+ 
+        apiVersion: 3,
         title:    'Bunny Gallery',
         icon:     'format-gallery',
         category: 'media',

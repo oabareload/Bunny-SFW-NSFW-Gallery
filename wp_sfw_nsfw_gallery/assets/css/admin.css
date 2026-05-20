@@ -1,0 +1,64 @@
+/**
+ * Bunny SFW&NSFW Gallery — Admin Styles
+ *
+ * Plugin-specific admin styles only.
+ * Shared admin chrome (header, nav, tabs, wrap) lives in bunny-admin.css.
+ *
+ * @package BunnyNSFW
+ * @since   0.4.2
+ */
+
+/* ==========================================================================
+   Plugin-specific variables (extend/override bunny-* base)
+   ========================================================================== */
+
+:root {
+	/* Gallery brand aliases */
+	--bsg-primary:       var(--bunny-accent);
+	--bsg-primary-light: var(--bunny-accent-light);
+	--bsg-radius:        var(--bunny-radius);
+	--bsg-radius-sm:     var(--bunny-radius-sm);
+	--bsg-shadow:        var(--bunny-shadow);
+	--bsg-transition:    var(--bunny-transition);
+	/* Semantic */
+	--bsg-gray-100:      #f8f8fc;
+	--bsg-gray-200:      #ececf4;
+	--bsg-gray-400:      #a0a0b8;
+	--bsg-gray-700:      #3d3d5c;
+}
+
+/* ==========================================================================
+   Settings form — section headings
+   ========================================================================== */
+
+#bunny-settings-wrap .form-table th {
+	font-weight: 600;
+	color: var(--bsg-gray-700);
+}
+
+#bunny-settings-wrap h2 {
+	border-left: 3px solid var(--bsg-primary);
+	padding-left: 10px;
+	color: var(--bsg-gray-700);
+	font-size: 14px;
+	margin-top: 28px;
+}
+
+#bunny-settings-wrap .form-table td select,
+#bunny-settings-wrap .form-table td input[type="text"],
+#bunny-settings-wrap .form-table td input[type="url"],
+#bunny-settings-wrap .form-table td textarea {
+	border-radius: var(--bsg-radius-sm);
+}
+
+/* ==========================================================================
+   Description text
+   ========================================================================== */
+
+.bunny-gallery-admin-desc {
+	font-size: 13px;
+	color: var(--bsg-gray-400);
+	margin: 4px 0 20px;
+	max-width: 680px;
+	line-height: 1.6;
+}

@@ -6,7 +6,7 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 
 ## Versión actual
 
-**0.4.1** — Fix: `show_lightbox_thumbnails` ahora desactiva correctamente el thumbnails rail
+**0.4.2** — Bunny Admin UI: shared header, sticky nav, bunny-* system
 
 ---
 
@@ -194,6 +194,16 @@ hardcoded fallback (bunny_gallery_hardcoded_defaults())
 ---
 
 ## Changelog
+
+### 0.4.2 — Bunny Admin UI
+
+- **Bunny Admin UI system:** adopted the shared `bunny-*` admin UI convention used across all Bunny plugins. The admin page now renders a consistent sticky header with the plugin logo, name, version badge, page subtitle, and tab navigation bar.
+- **New `assets/css/bunny-admin.css`:** plugin-agnostic stylesheet — sticky header, tab nav, version badge, page-content wrapper, responsive breakpoints. Loaded as a WordPress style dependency before `admin.css`.
+- **New `assets/css/admin.css`:** plugin-specific admin styles (settings form headings, section borders, field radii). `--bsg-*` variables alias the shared `--bunny-*` tokens.
+- **New `includes/admin/class-admin-header.php`:** `BunnyNSFW\Admin_Header` — mirrors the pattern from QPS and WPAM. Renders header + nav from a `$tabs` array; active tab detected by slug argument. Ready for future tabs without touching page templates.
+- **New `includes/admin/class-admin-assets.php`:** `BunnyNSFW\Admin_Assets` — enqueues `bunny-admin.css` and `admin.css` scoped to plugin screens only.
+- **`bunny_gallery_settings_page()`:** replaced inline `<h1>` and bare `<div class="wrap">` with `bunny-wrap`, `Admin_Header::render()`, and `bunny-page-content`. No logic, fields, sections, or sanitization changed.
+- **No functional changes:** all block registration, render callbacks, Settings API fields, sanitization, frontend scripts, and cookie logic untouched.
 
 ### 0.4.1 — 2025-05
 - **Fix:** `show_lightbox_thumbnails = false` no desactivaba el thumbnails rail — el carrusel seguía apareciendo

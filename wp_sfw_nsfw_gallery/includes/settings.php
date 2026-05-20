@@ -172,15 +172,15 @@ function bunny_gallery_sanitize_options( $input ): array {
 // -----------------------------------------------------------------------------
 
 function bunny_gallery_add_menu(): void {
-    add_menu_page(
-        'Bunny Gallery',
-        'Bunny Gallery',
-        'manage_options',
-        'bunny-gallery-settings',
-        'bunny_gallery_settings_page',
-        'dashicons-format-gallery',
-        58
-    );
+	add_menu_page(
+		'Bunny Gallery',
+		'Bunny Gallery',
+		'manage_options',
+		'bunny-gallery-settings',
+		'bunny_gallery_settings_page',
+		'dashicons-format-gallery',
+		58
+	);
 }
 add_action( 'admin_menu', 'bunny_gallery_add_menu' );
 
@@ -189,24 +189,39 @@ add_action( 'admin_menu', 'bunny_gallery_add_menu' );
 // -----------------------------------------------------------------------------
 
 function bunny_gallery_settings_page(): void {
-    if ( ! current_user_can( 'manage_options' ) ) return;
-    ?>
-    <div class="wrap" id="bunny-settings-wrap">
-        <h1 style="display:flex;align-items:center;gap:10px;">
-            <span class="dashicons dashicons-format-gallery" style="font-size:28px;width:28px;height:28px;color:#1d8348;"></span>
-            Bunny SFW&amp;NSFW Gallery
-        </h1>
-        <p class="description">Valores por defecto para bloques nuevos. Un bloque con valor propio siempre lo prioriza.</p>
-        <hr>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields( 'bunny_gallery_group' );
-            do_settings_sections( 'bunny-gallery-settings' );
-            submit_button( 'Guardar ajustes' );
-            ?>
-        </form>
-    </div>
-    <?php
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	require_once plugin_dir_path( __FILE__ ) . 'admin/class-admin-header.php';
+	?>
+	<div class="wrap bunny-wrap" id="bunny-settings-wrap">
+
+		<?php BunnyNSFW\Admin_Header::render( 'bunny-gallery-settings' ); ?>
+
+		<div class="bunny-page-content">
+
+			<p class="bunny-gallery-admin-desc">
+				<?php esc_html_e( 'Global defaults for new blocks. A block with its own value always takes priority.', 'bunny-sfw-nsfw-gallery' ); ?>
+			</p>
+
+			<?php if ( isset( $_GET['settings-updated'] ) ) : ?>
+				<div class="notice notice-success is-dismissible">
+					<p><?php esc_html_e( 'Settings saved.', 'bunny-sfw-nsfw-gallery' ); ?></p>
+				</div>
+			<?php endif; ?>
+
+			<form method="post" action="options.php">
+				<?php
+				settings_fields( 'bunny_gallery_group' );
+				do_settings_sections( 'bunny-gallery-settings' );
+				submit_button( __( 'Save settings', 'bunny-sfw-nsfw-gallery' ) );
+				?>
+			</form>
+
+		</div><!-- .bunny-page-content -->
+	</div><!-- .bunny-wrap -->
+	<?php
 }
 
 // -----------------------------------------------------------------------------

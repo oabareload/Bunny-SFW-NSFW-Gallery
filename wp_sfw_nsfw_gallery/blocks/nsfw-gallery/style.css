@@ -486,6 +486,9 @@ body.bunny-lightbox-open { overflow: hidden; }
     width:     48px;
     height:    48px;
     border-radius: 14px;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
 }
 
 .blb-prev { left:  16px; }
@@ -607,6 +610,7 @@ body.bunny-lightbox-open { overflow: hidden; }
     z-index:          100002;
     height:           96px;
     display:          flex;
+    justify-content:  center;
     align-items:      center;
     gap:              8px;
     padding:          0 16px 8px;
@@ -690,4 +694,27 @@ body.bunny-lightbox-open { overflow: hidden; }
     .bunny-lightbox-overlay[data-thumbs="1"] .blb-caption {
         bottom: 86px;
     }
+}
+ 
+/* -----------------------------------------------------------------------------
+   ASTRA THEME RESET — neutralizar overrides del tema en botones del lightbox
+   ----------------------------------------------------------------------------- */
+ 
+.bunny-lightbox-overlay button.blb-btn {
+    background-color: var( --blb-surface ) !important;
+    border-color:     var( --blb-border )  !important;
+    color:            var( --blb-text )    !important;
+    padding:          0                    !important;
+    font-size:        inherit              !important;
+    font-weight:      inherit              !important;
+    line-height:      inherit              !important;
+    box-shadow:       none                 !important;
+    border-style:     solid                !important;
+    border-width:     1px                  !important;
+}
+ 
+.bunny-lightbox-overlay button.blb-btn:hover {
+    background-color: var( --blb-surface-hover )              !important;
+    border-color:     rgba( 255, 255, 255, 0.22 )             !important;
+    box-shadow:       0 0 0 1px rgba( 255, 255, 255, 0.08 )   !important;
 }
