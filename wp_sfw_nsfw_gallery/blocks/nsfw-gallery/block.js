@@ -23,15 +23,16 @@
     var ToolbarButton = wp.components.ToolbarButton;
     var Spinner       = wp.components.Spinner;
 
-    var useState  = wp.element.useState;
-    var useEffect = wp.element.useEffect;
+    var useState       = wp.element.useState;
+    var useEffect      = wp.element.useEffect;
+    var useBlockProps  = wp.blockEditor.useBlockProps;
 
     // -------------------------------------------------------------------------
     // DEFAULTS
     // -------------------------------------------------------------------------
 
     var D = window.bunnyGalleryDefaults || {
-        columns:        3,
+        columns:        5,
         blur:           true,
         blur_intensity: 12,
         link_behavior:  'none',
@@ -285,7 +286,9 @@
             // INSPECTOR CONTROLS
             // ------------------------------------------------------------------
 
-            return el( 'div', {},
+            var blockProps = useBlockProps();
+
+            return el( 'div', blockProps,
 
                 el( InspectorControls, {},
 
@@ -325,9 +328,9 @@
 
                         el( RangeControl, {
                             label:    'Columnas',
-                            value:    columns,
+                            value:    parseInt( columns, 10 ) || D.columns,
                             min:      1,
-                            max:      6,
+                            max:      12,
                             step:     1,
                             onChange: function ( v ) { set( { columns: v } ); },
                         } ),

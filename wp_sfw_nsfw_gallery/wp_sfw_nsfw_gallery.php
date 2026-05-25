@@ -3,7 +3,7 @@
  * Plugin Name:       Bunny SFW&NSFW Gallery
  * Plugin URI:        https://bunnychase.net/bunny-sfw-nsfw-gallery
  * Description:       Gutenberg gallery block with SFW/NSFW protection system based on cookies.
- * Version:           0.4.2
+ * Version:           0.4.3
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author:            BunnyChase
@@ -14,7 +14,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'BUNNY_NSWF_VERSION',     '0.4.2' );
+define( 'BUNNY_NSWF_VERSION',     '0.4.3' );
 define( 'BUNNY_NSWF_PLUGIN_FILE', __FILE__ );
 define( 'BUNNY_NSWF_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'BUNNY_NSWF_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );

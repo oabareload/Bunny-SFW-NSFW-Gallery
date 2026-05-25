@@ -16,7 +16,7 @@ define( 'BUNNY_GALLERY_OPTION', 'bunny_gallery_defaults' );
 
 function bunny_gallery_hardcoded_defaults(): array {
     return [
-        'columns'            => 3,
+        'columns'            => 5,
         'blur'               => true,
         'blur_intensity'     => 12,
         'link_behavior'      => 'none',
@@ -116,7 +116,7 @@ function bunny_gallery_sanitize_options( $input ): array {
     $clean = [];
 
     $cols             = absint( $input['columns'] ?? $d['columns'] );
-    $clean['columns'] = max( 1, min( 6, $cols ) );
+    $clean['columns'] = max( 1, min( 12, $cols ) );
 
     $clean['blur']         = ! empty( $input['blur'] );
     $clean['target_blank'] = ! empty( $input['target_blank'] );
@@ -231,8 +231,8 @@ function bunny_gallery_settings_page(): void {
 function bunny_field_columns(): void {
     $opts = get_option( BUNNY_GALLERY_OPTION, [] );
     $val  = $opts['columns'] ?? bunny_gallery_hardcoded_defaults()['columns'];
-    echo '<input type="number" min="1" max="6" step="1" name="' . BUNNY_GALLERY_OPTION . '[columns]" value="' . esc_attr( (int) $val ) . '" class="small-text">';
-    echo '<p class="description">Entre 1 y 6 columnas.</p>';
+    echo '<input type="number" min="1" max="12" step="1" name="' . BUNNY_GALLERY_OPTION . '[columns]" value="' . esc_attr( (int) $val ) . '" class="small-text">';
+    echo '<p class="description">Entre 1 y 12 columnas.</p>';
 }
 
 function bunny_field_image_size(): void {

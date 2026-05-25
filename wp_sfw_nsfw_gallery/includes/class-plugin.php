@@ -40,7 +40,7 @@ class Plugin {
         wp_register_script(
             'bunny-nsfw-block-editor',
             BUNNY_NSWF_PLUGIN_URL . 'blocks/nsfw-gallery/block.js',
-            [ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-editor' ],
+            [ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n' ],
             BUNNY_NSWF_VERSION,
             false
         );
@@ -93,7 +93,7 @@ class Plugin {
         $nsfw_display_style = \bunny_get_setting( null, 'nsfw_display_style' ); // solo global
         $unlock_button_text = \bunny_get_setting( null, 'unlock_button_text' ); // solo global
 
-        $columns        = max( 1, min( 6, (int) $columns ) );
+        $columns        = max( 1, min( 12, (int) $columns ) );
         $blur_intensity = max( 0, min( 20, (int) $blur_intensity ) );
         $target         = $target_blank ? '_blank' : '_self';
         $title          = $mode === 'nsfw' ? $nsfw_title : $sfw_title;

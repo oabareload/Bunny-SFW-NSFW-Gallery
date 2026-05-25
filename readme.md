@@ -6,7 +6,7 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 
 ## Versión actual
 
-**0.4.2** — Bunny Admin UI: shared header, sticky nav, bunny-* system
+**0.4.3** — Gutenberg fixes & columns UX
 
 ---
 
@@ -42,11 +42,11 @@ Ubicación: **Bunny Gallery** (menú lateral de WordPress Admin)
 
 | Setting              | Descripción                                              | Default   |
 |----------------------|----------------------------------------------------------|-----------|
-| Columnas             | Número de columnas del grid (1–6)                        | `3`       |
-| Tamaño de imagen     | `thumbnail` / `medium` / `large` / `full`                | `large`   |
-| Aspect ratio         | `square` / `portrait` / `landscape` / `original`         | `square`  |
-| Comportamiento enlace| `none` / `lightbox` / `file` / `attachment`              | `none`    |
-| Nueva pestaña        | Abre enlaces en `_blank` (solo file/attachment)          | `false`   |
+| Columnas             | Número de columnas del grid (1–12)                       | `5`       |
+| Tamaño de imagen     | `thumbnail` / `medium` / `large` / `full`                | `thumbnail`   |
+| Aspect ratio         | `square` / `portrait` / `landscape` / `original`         | `portrait`  |
+| Comportamiento enlace| `none` / `lightbox` / `file` / `attachment`              | `lightbox`    |
+| Nueva pestaña        | Abre enlaces en `_blank` (solo file/attachment)          | `true`   |
 
 ### Sección: Protección NSFW
 
@@ -194,6 +194,14 @@ hardcoded fallback (bunny_gallery_hardcoded_defaults())
 ---
 
 ## Changelog
+
+### 0.4.3 — Gutenberg fixes & columns UX
+
+- **Fix:** eliminado `wp-editor` de las dependencias del editor script — causaba un `Notice` en `wp-admin/widgets.php` al ser incompatible con el nuevo editor de widgets (`wp-edit-widgets` / `wp-customize-widgets`); migrado correctamente a `wp-block-editor`
+- **Fix:** el bloque Gutenberg ahora puede seleccionarse correctamente haciendo clic en el área de preview — recuperado el outline azul de selección y la toolbar contextual; causa raíz: falta de integración con `useBlockProps` de la API v3
+- **Mejora:** default global de columnas cambiado de `3 → 5`
+- **Mejora:** máximo de columnas aumentado de `6 → 12` — actualizado en `RangeControl`, sanitización PHP y campo de settings
+- **Fix UX:** el control de columnas ya no aparece vacío en el inspector — se garantiza siempre un valor numérico válido con `parseInt(columns, 10) || D.columns`
 
 ### 0.4.2 — Bunny Admin UI
 
