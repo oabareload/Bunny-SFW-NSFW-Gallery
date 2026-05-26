@@ -77,6 +77,7 @@
             aspectRatio:   { type: 'string',  default: D.aspect_ratio },
             sfwTitle:      { type: 'string',  default: D.sfw_title  || '' },
             nsfwTitle:     { type: 'string',  default: D.nsfw_title || '' },
+            showTitle:     { type: 'boolean', default: true },
         },
 
         // ----------------------------------------------------------------------
@@ -100,6 +101,7 @@
             var aspectRatio   = attrs.aspectRatio;
             var sfwTitle      = attrs.sfwTitle;
             var nsfwTitle     = attrs.nsfwTitle;
+            var showTitle     = attrs.showTitle !== false;
 
             var rState        = useState( imageData || [] );
             var resolvedImages = rState[0];
@@ -245,7 +247,7 @@
                     },
                         el( 'div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
                             el( 'span', { style: badgeStyle }, isNsfw ? 'NSFW' : 'SFW' ),
-                            activeTitle && el( 'span', {
+                            showTitle && activeTitle && el( 'span', {
                                 style: { fontSize: '14px', fontWeight: '600', color: '#1e1e1e' },
                             }, activeTitle )
                         ),
@@ -255,7 +257,7 @@
                     ),
 
                     // Título visual (si existe)
-                    activeTitle && el( 'p', {
+                    showTitle && activeTitle && el( 'p', {
                         style: {
                             margin: '0 0 8px 0', fontSize: '16px',
                             fontWeight: '700', color: isNsfw ? '#cc1818' : '#1e1e1e',
@@ -394,6 +396,12 @@
                             value:    nsfwTitle,
                             placeholder: D.nsfw_title || 'Ej: Contenido para adultos',
                             onChange: function ( v ) { set( { nsfwTitle: v } ); },
+                        } ),
+
+                        el( ToggleControl, {
+                            label:    'Mostrar título',
+                            checked:  showTitle,
+                            onChange: function ( v ) { set( { showTitle: v } ); },
                         } )
                     )
                 ),

@@ -6,7 +6,7 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 
 ## Versión actual
 
-**0.4.3** — Gutenberg fixes & columns UX
+**0.4.4** — Toggle mostrar/ocultar título por bloque
 
 ---
 
@@ -194,6 +194,15 @@ hardcoded fallback (bunny_gallery_hardcoded_defaults())
 ---
 
 ## Changelog
+
+### 0.4.4 — Toggle mostrar/ocultar título por bloque
+
+- **Nuevo:** Atributo `showTitle` (boolean, default `true`) por bloque — controla si se renderiza el título de la galería
+- **Nuevo:** `ToggleControl` "Mostrar título" en el panel **Títulos** del inspector de Gutenberg
+- **Comportamiento OFF:** el `<h2 class="bunny-gallery-title">` directamente no se imprime — sin `display:none`, sin espacio vacío, cero nodos en el DOM
+- **Preview:** el editor reacciona al toggle de forma inmediata, igual que el frontend
+- **Por bloque:** SFW y NSFW comparten el mismo toggle dentro de cada bloque; no afecta otros bloques
+- Archivos modificados: `block.js`, `includes/class-plugin.php`
 
 ### 0.4.3 — Gutenberg fixes & columns UX
 

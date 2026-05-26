@@ -90,6 +90,7 @@ class Plugin {
         $aspect_ratio       = \bunny_get_setting( $attributes['aspectRatio']  ?? null, 'aspect_ratio' );
         $sfw_title          = \bunny_get_setting( $attributes['sfwTitle']     ?? null, 'sfw_title' );
         $nsfw_title         = \bunny_get_setting( $attributes['nsfwTitle']    ?? null, 'nsfw_title' );
+        $show_title         = $attributes['showTitle'] ?? true;
         $nsfw_display_style = \bunny_get_setting( null, 'nsfw_display_style' ); // solo global
         $unlock_button_text = \bunny_get_setting( null, 'unlock_button_text' ); // solo global
 
@@ -113,7 +114,7 @@ class Plugin {
             data-unlock-text="<?php echo esc_attr( $unlock_button_text ); ?>"
             style="--bunny-cols:<?php echo $columns; ?>;--bunny-blur:<?php echo $blur_intensity; ?>px;--bunny-ratio:<?php echo esc_attr( $css_ratio ); ?>;"
         >
-            <?php if ( ! empty( $title ) ) : ?>
+            <?php if ( $show_title && ! empty( $title ) ) : ?>
             <h2 class="bunny-gallery-title bunny-gallery-title--<?php echo esc_attr( $mode ); ?>">
                 <?php echo esc_html( $title ); ?>
             </h2>
