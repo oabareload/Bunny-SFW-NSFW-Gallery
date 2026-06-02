@@ -62,3 +62,8 @@
 	max-width: 680px;
 	line-height: 1.6;
 }
+
+#wpfooter {
+	position: relative !important;
+	bottom: auto !important;
+}
