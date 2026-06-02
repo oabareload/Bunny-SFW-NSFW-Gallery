@@ -71,7 +71,7 @@
             columns:       { type: 'number',  default: D.columns },
             linkTo:        { type: 'string',  default: D.link_behavior },
             blur:          { type: 'boolean', default: !! D.blur },
-            blurIntensity: { type: 'number',  default: D.blur_intensity },
+            blurIntensity: { type: 'number',  default: +D.blur_intensity },
             targetBlank:   { type: 'boolean', default: !! D.target_blank },
             imageSize:     { type: 'string',  default: D.image_size },
             aspectRatio:   { type: 'string',  default: D.aspect_ratio },
@@ -317,7 +317,7 @@
 
                         isNsfw && blur && el( RangeControl, {
                             label:    'Intensidad del blur',
-                            value:    ( blurIntensity !== undefined && blurIntensity !== null ) ? blurIntensity : D.blur_intensity,
+                            value:    Number( ( blurIntensity !== undefined && blurIntensity !== null ) ? blurIntensity : D.blur_intensity ),
                             min:      0,
                             max:      20,
                             step:     1,
