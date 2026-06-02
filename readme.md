@@ -6,7 +6,7 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 
 ## Versión actual
 
-**0.4.4** — Toggle mostrar/ocultar título por bloque
+**0.4.5** — Fix blur intensity control empty on block open
 
 ---
 
@@ -194,6 +194,13 @@ hardcoded fallback (bunny_gallery_hardcoded_defaults())
 ---
 
 ## Changelog
+
+### 0.4.5 — Fix blur intensity control empty on block open
+
+- **Fix:** el control `RangeControl` de intensidad del blur aparecía vacío al seleccionar el bloque — el slider no mostraba ningún valor hasta que el usuario lo movía
+- **Causa:** `blurIntensity` podía ser `undefined` en bloques donde el atributo no estaba serializado (valor coincidente con default o bloque antiguo); `RangeControl` recibe `undefined` y no renderiza ningún valor
+- **Solución:** `value` del control ahora usa `blurIntensity !== undefined && blurIntensity !== null ? blurIntensity : D.blur_intensity` — mismo patrón que el control de columnas
+- Archivo modificado: `blocks/nsfw-gallery/block.js`
 
 ### 0.4.4 — Toggle mostrar/ocultar título por bloque
 

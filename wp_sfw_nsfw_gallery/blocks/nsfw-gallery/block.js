@@ -317,7 +317,7 @@
 
                         isNsfw && blur && el( RangeControl, {
                             label:    'Intensidad del blur',
-                            value:    blurIntensity,
+                            value:    ( blurIntensity !== undefined && blurIntensity !== null ) ? blurIntensity : D.blur_intensity,
                             min:      0,
                             max:      20,
                             step:     1,
