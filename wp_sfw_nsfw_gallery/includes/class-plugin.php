@@ -34,6 +34,12 @@ class Plugin {
             'style'           => 'bunny-nsfw-block-style',
             'render_callback' => [ $this, 'render_block' ],
         ] );
+        register_block_type( 'bunny/content-section', [
+            'editor_script'   => 'bunny-content-section-editor',
+            'script'          => 'bunny-content-section-frontend',
+            'style'           => 'bunny-content-section-style',
+            'render_callback' => [ $this, 'render_content_section' ],
+        ] );
     }
 
     private function register_assets(): void {
@@ -68,6 +74,28 @@ class Plugin {
         wp_register_style(
             'bunny-nsfw-block-style',
             BUNNY_NSWF_PLUGIN_URL . 'blocks/nsfw-gallery/style.css',
+            [],
+            BUNNY_NSWF_VERSION
+        );
+
+        // Content Section block
+        wp_register_script(
+            'bunny-content-section-editor',
+            BUNNY_NSWF_PLUGIN_URL . 'blocks/content-section/block.js',
+            [ 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n' ],
+            BUNNY_NSWF_VERSION,
+            false
+        );
+        wp_register_script(
+            'bunny-content-section-frontend',
+            BUNNY_NSWF_PLUGIN_URL . 'blocks/content-section/frontend.js',
+            [],
+            BUNNY_NSWF_VERSION,
+            true
+        );
+        wp_register_style(
+            'bunny-content-section-style',
+            BUNNY_NSWF_PLUGIN_URL . 'blocks/content-section/style.css',
             [],
             BUNNY_NSWF_VERSION
         );
@@ -152,6 +180,59 @@ class Plugin {
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    public function render_content_section( array $attributes ): string {
+        $image_id      = $attributes['imageId']      ?? 0;
+        $image_size    = $attributes['imageSize']    ?? 'large';
+        $image_height  = $attributes['imageHeight']  ?? 'medium';
+        $image_width   = $attributes['imageWidth']   ?? '33';
+        $image_pos     = $attributes['imagePosition'] ?? 'left';
+        $title         = $attributes['title']        ?? '';
+        $content       = $attributes['content']      ?? '';
+        $show_title    = $attributes['showTitle']    ?? true;
+        $lightbox      = $attributes['lightbox']     ?? true;
+
+        $height_map = [ 'small' => '200px', 'medium' => '320px', 'large' => '480px' ];
+        $img_height = $height_map[ $image_height ] ?? '320px';
+
+        $allowed_widths = [ '25', '33', '40', '50' ];
+        $img_width = in_array( (string) $image_width, $allowed_widths, true ) ? (string) $image_width : '33';
+
+        $img_url  = $image_id ? wp_get_attachment_image_url( $image_id, $image_size ) : '';
+        $img_full = $image_id ? wp_get_attachment_url( $image_id ) : '';
+        $img_alt  = $image_id ? get_post_meta( $image_id, '_wp_attachment_image_alt', true ) : '';
+
+        ob_start(); ?>
+        <div class="bunny-content-section bunny-content-section--<?php echo esc_attr( $image_pos ); ?>"
+             style="--bunny-cs-img-height:<?php echo esc_attr( $img_height ); ?>;--bunny-cs-img-width:<?php echo esc_attr( $img_width ); ?>"
+        >
+            <?php if ( $img_url ) : ?>
+            <div class="bunny-cs-image-wrap"
+                 <?php if ( $lightbox && $img_full ) : ?>
+                     data-lightbox="1"
+                     data-full="<?php echo esc_url( $img_full ); ?>"
+                 <?php endif; ?>
+            >
+                <img
+                    src="<?php echo esc_url( $img_url ); ?>"
+                    alt="<?php echo esc_attr( $img_alt ); ?>"
+                    class="bunny-cs-image<?php echo ( $lightbox && $img_full ) ? ' bunny-cs-image--lightbox' : ''; ?>"
+                    loading="lazy"
+                />
+            </div>
+            <?php endif; ?>
+            <div class="bunny-cs-text">
+                <?php if ( $show_title && ! empty( $title ) ) : ?>
+                <h2 class="bunny-cs-title"><?php echo esc_html( $title ); ?></h2>
+                <?php endif; ?>
+                <?php if ( ! empty( $content ) ) : ?>
+                <div class="bunny-cs-content"><?php echo wp_kses_post( $content ); ?></div>
+                <?php endif; ?>
             </div>
         </div>
         <?php

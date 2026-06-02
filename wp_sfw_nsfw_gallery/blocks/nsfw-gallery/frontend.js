@@ -663,4 +663,7 @@
         ? document.addEventListener( 'DOMContentLoaded', init )
         : init();
 
+    // Exponer BunnyLightbox globalmente para que otros bloques puedan reutilizarlo
+    window.BunnyLightbox = BunnyLightbox;
+
 } )();

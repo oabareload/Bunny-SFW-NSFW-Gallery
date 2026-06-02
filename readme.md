@@ -6,14 +6,16 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 
 ## Versión actual
 
-**0.4.5** — Fix blur intensity control empty on block open
+**0.5.0** — Nuevo bloque: Bunny Content Section
 
 ---
 
 ## Características
 
 - Bloque Gutenberg dinámico (render en PHP, sin build system)
-- Modo SFW / NSFW por bloque
+- **Bunny Gallery** — galería SFW/NSFW con blur, lightbox, overlays y cookie
+- **Bunny Content Section** — sección imagen + título + texto enriquecido con layout responsive
+- Modo SFW / NSFW por bloque (galería)
 - **Títulos de galería** por modo (SFW / NSFW), override por bloque
 - **Tamaño de imagen** configurable: thumbnail, medium, large, full
 - **Aspect ratio** configurable: square, portrait, landscape, original
@@ -31,6 +33,28 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 - Counter visual: `3 / 12`
 - **Settings globales** en menú propio: Bunny Gallery
 - Cadena de resolución: bloque → setting global → fallback hardcoded
+
+## Bloques disponibles
+
+### Bunny Gallery
+
+Galería de imágenes con sistema SFW/NSFW, blur, lightbox nativo, overlays y desbloqueo por cookie. Ver sección Settings globales para opciones de configuración.
+
+### Bunny Content Section
+
+Sección de contenido con imagen, título y texto enriquecido.
+
+**Layout desktop:** dos columnas (imagen + texto), configurable imagen izquierda o derecha.  
+**Layout tablet/mobile:** colapsa automáticamente a columna única — imagen arriba, texto abajo.  
+**Opciones en inspector:**
+- Posición de imagen (izquierda / derecha)
+- Tamaño de imagen (thumbnail / medium / large / full)
+- Altura visual (small 200px / medium 320px / large 480px)
+- Abrir imagen en lightbox (on/off)
+- Mostrar título (on/off)
+
+**Texto:** soporta párrafos, listas, enlaces, negritas y cursivas vía RichText de Gutenberg.  
+**Lightbox:** reutiliza el mismo sistema de lightbox del plugin — mismo estilo, sin duplicar código.
 
 ---
 
@@ -140,16 +164,20 @@ wp_sfw_nsfw_gallery/
 ├── wp_sfw_nsfw_gallery.php     # Plugin header, constantes, bootstrap
 ├── includes/
 │   ├── settings.php            # Options API, menú, bunny_get_setting()
-│   ├── class-plugin.php        # register_block, render_callback
+│   ├── class-plugin.php        # register_block, render_callback (galería + content section)
 │   ├── class-loader.php        # Registro de hooks
 │   ├── class-activator.php     # Hook de activación
 │   ├── class-deactivator.php   # Hook de desactivación
 │   └── helpers.php             # Funciones auxiliares
 └── blocks/
-    └── nsfw-gallery/
+    ├── nsfw-gallery/
+    │   ├── block.js            # Editor Gutenberg (sin JSX, sin build)
+    │   ├── frontend.js         # Vanilla JS: NSFW display styles + BunnyLightbox
+    │   └── style.css           # Estilos: grid, minimal badge, modal, overlay, lightbox
+    └── content-section/
         ├── block.js            # Editor Gutenberg (sin JSX, sin build)
-        ├── frontend.js         # Vanilla JS: NSFW display styles + BunnyLightbox
-        └── style.css           # Estilos: grid, minimal badge, modal, overlay, lightbox
+        ├── frontend.js         # Vanilla JS: lightbox single-image para Content Section
+        └── style.css           # Estilos: layout responsive dos columnas, imagen, texto
 ```
 
 ---
@@ -194,6 +222,20 @@ hardcoded fallback (bunny_gallery_hardcoded_defaults())
 ---
 
 ## Changelog
+
+### 0.5.0 — Nuevo bloque: Bunny Content Section
+
+- **Nuevo bloque:** `bunny/content-section` — sección imagen + título + texto enriquecido
+- **Layout desktop:** grid dos columnas (ratio 1fr/2fr), imagen posicionable izquierda o derecha
+- **Layout responsive:** colapsa a columna única en tablet/mobile (≤768px), imagen siempre arriba
+- **Altura visual configurable:** small (200px) / medium (320px) / large (480px) via CSS variable `--bunny-cs-img-height`
+- **Tamaño de imagen:** thumbnail / medium / large / full (mismo sistema que la galería)
+- **RichText:** soporta párrafos, listas, enlaces, negritas y cursivas
+- **Lightbox:** reutiliza el overlay del sistema existente — sin duplicar código
+- **InspectorControls:** posición de imagen, tamaño, altura visual, toggle lightbox, toggle mostrar título
+- **Render PHP:** `render_content_section()` en `class-plugin.php`, salida sanitizada con `wp_kses_post`
+- Nuevos archivos: `blocks/content-section/block.js`, `frontend.js`, `style.css`
+- Modificados: `wp_sfw_nsfw_gallery.php`, `includes/class-plugin.php`, `readme.md`
 
 ### 0.4.5 — Fix blur intensity control empty on block open
 

@@ -1,0 +1,134 @@
+/**
+ * Bunny Content Section — style.css
+ * @since 0.5.0
+ */
+
+/* ── Layout base ──────────────────────────────────────────────────────────── */
+
+.bunny-content-section {
+    display: grid;
+    gap: 32px;
+    align-items: start;
+    margin: 0 0 2em;
+    /* ancho dinámico: --bunny-cs-img-width es el % de la columna imagen (25|33|40|50) */
+    --_img-w: calc( var( --bunny-cs-img-width, 33 ) * 1% );
+    --_txt-w: calc( 100% - var( --_img-w ) - 32px );
+    grid-template-columns: var( --_img-w ) 1fr;
+}
+
+.bunny-content-section--right {
+    grid-template-columns: 1fr var( --_img-w );
+}
+
+/* Imagen izquierda: col 1, texto col 2 */
+.bunny-content-section--left .bunny-cs-image-wrap {
+    grid-column: 1;
+    grid-row:    1;
+}
+.bunny-content-section--left .bunny-cs-text {
+    grid-column: 2;
+    grid-row:    1;
+}
+
+/* Imagen derecha: col 2, texto col 1 */
+.bunny-content-section--right .bunny-cs-image-wrap {
+    grid-column: 2;
+    grid-row:    1;
+}
+.bunny-content-section--right .bunny-cs-text {
+    grid-column: 1;
+    grid-row:    1;
+}
+
+/* ── Imagen ───────────────────────────────────────────────────────────────── */
+
+.bunny-cs-image-wrap {
+    overflow:      hidden;
+    border-radius: 8px;
+    height:        var( --bunny-cs-img-height, 320px );
+    background:    #f0f0f0;
+    position:      relative;
+}
+
+.bunny-cs-image {
+    width:      100%;
+    height:     100%;
+    object-fit: cover;
+    display:    block;
+    transition: transform 0.2s ease;
+}
+
+.bunny-cs-image--lightbox {
+    cursor: zoom-in;
+}
+
+.bunny-cs-image-wrap[data-lightbox="1"]:hover .bunny-cs-image {
+    transform: scale( 1.02 );
+}
+
+/* ── Texto ────────────────────────────────────────────────────────────────── */
+
+.bunny-cs-text {
+    display:       flex;
+    flex-direction: column;
+    gap:           12px;
+}
+
+.bunny-cs-title {
+    margin:      0;
+    font-size:   1.5em;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.bunny-cs-content {
+    font-size:   1em;
+    line-height: 1.7;
+    color:       inherit;
+}
+
+.bunny-cs-content p {
+    margin: 0 0 0.75em;
+}
+
+.bunny-cs-content p:last-child {
+    margin-bottom: 0;
+}
+
+.bunny-cs-content ul,
+.bunny-cs-content ol {
+    margin:       0 0 0.75em 1.5em;
+    padding:      0;
+}
+
+.bunny-cs-content a {
+    color:           inherit;
+    text-decoration: underline;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+
+@media ( max-width: 768px ) {
+    .bunny-content-section,
+    .bunny-content-section--right {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    /* Imagen siempre primero en mobile */
+    .bunny-content-section--left .bunny-cs-image-wrap,
+    .bunny-content-section--right .bunny-cs-image-wrap {
+        grid-column: 1;
+        grid-row:    1;
+    }
+
+    .bunny-content-section--left .bunny-cs-text,
+    .bunny-content-section--right .bunny-cs-text {
+        grid-column: 1;
+        grid-row:    2;
+    }
+
+    .bunny-cs-image-wrap {
+        height: 240px;
+    }
+}
