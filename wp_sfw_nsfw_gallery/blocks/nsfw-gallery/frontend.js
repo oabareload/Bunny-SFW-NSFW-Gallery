@@ -663,7 +663,9 @@
         ? document.addEventListener( 'DOMContentLoaded', init )
         : init();
 
-    // Exponer BunnyLightbox globalmente para que otros bloques puedan reutilizarlo
-    window.BunnyLightbox = BunnyLightbox;
-
+    try {// Exponer BunnyLightbox globalmente para que otros bloques puedan reutilizarlo
+        window.BunnyLightbox = BunnyLightbox;
+    } catch ( e ) {
+        console.log( 'No se pudo exponer BunnyLightbox globalmente:', e );
+    }
 } )();

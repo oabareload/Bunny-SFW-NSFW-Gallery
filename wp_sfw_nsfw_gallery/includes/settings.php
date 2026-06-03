@@ -406,3 +406,196 @@ function bunny_field_lightbox_caption_mode(): void {
     }
     echo '</select>';
 }
+
+// =============================================================================
+// IMAGE NORMALIZATION SETTINGS (0.6.0)
+// =============================================================================
+
+define( 'BUNNY_NORMALIZATION_OPTION', 'bunny_normalization_settings' );
+
+function bunny_normalization_hardcoded_defaults(): array {
+    return [
+        'enabled'       => false,
+        'ratio_mode'    => 'auto',
+        'method'        => 'pad',
+        'bg_color'      => 'white',
+        'tolerance'     => 0.0,
+        'keep_original' => true,
+    ];
+}
+
+function bunny_normalization_register_settings(): void {
+    register_setting(
+        'bunny_normalization_group',
+        BUNNY_NORMALIZATION_OPTION,
+        [
+            'type'              => 'array',
+            'sanitize_callback' => 'bunny_normalization_sanitize_options',
+            'default'           => bunny_normalization_hardcoded_defaults(),
+        ]
+    );
+
+    add_settings_section(
+        'bunny_section_normalization',
+        'Image Normalization',
+        '__return_false',
+        'bunny-normalization-settings'
+    );
+
+    add_settings_field( 'norm_enabled',       'Enable Image Normalization', 'bunny_field_norm_enabled',       'bunny-normalization-settings', 'bunny_section_normalization' );
+    add_settings_field( 'norm_ratio_mode',    'Ratio Mode',                 'bunny_field_norm_ratio_mode',    'bunny-normalization-settings', 'bunny_section_normalization' );
+    add_settings_field( 'norm_method',        'Processing Method',          'bunny_field_norm_method',        'bunny-normalization-settings', 'bunny_section_normalization' );
+    add_settings_field( 'norm_bg_color',      'Background Color',           'bunny_field_norm_bg_color',      'bunny-normalization-settings', 'bunny_section_normalization' );
+    add_settings_field( 'norm_tolerance',     'Ratio Tolerance',            'bunny_field_norm_tolerance',     'bunny-normalization-settings', 'bunny_section_normalization' );
+    add_settings_field( 'norm_keep_original', 'Keep Original',              'bunny_field_norm_keep_original', 'bunny-normalization-settings', 'bunny_section_normalization' );
+}
+add_action( 'admin_init', 'bunny_normalization_register_settings' );
+
+function bunny_normalization_sanitize_options( $input ): array {
+    $d     = bunny_normalization_hardcoded_defaults();
+    $clean = [];
+
+    $clean['enabled']       = ! empty( $input['enabled'] );
+    $clean['keep_original'] = ! empty( $input['keep_original'] );
+
+    $allowed_ratios      = [ 'auto', '1:1', '4:5', '1.91:1' ];
+    $clean['ratio_mode'] = in_array( $input['ratio_mode'] ?? '', $allowed_ratios, true )
+                           ? $input['ratio_mode'] : $d['ratio_mode'];
+
+    $allowed_methods = [ 'pad', 'crop', 'smart_crop' ];
+    $clean['method'] = in_array( $input['method'] ?? '', $allowed_methods, true )
+                       ? $input['method'] : $d['method'];
+
+    $allowed_colors   = [ 'white', 'black', 'transparent' ];
+    $clean['bg_color'] = in_array( $input['bg_color'] ?? '', $allowed_colors, true )
+                         ? $input['bg_color'] : $d['bg_color'];
+
+    $tol               = (float) ( $input['tolerance'] ?? 0 );
+    $clean['tolerance'] = max( 0.0, min( 1.0, $tol ) );
+
+    return $clean;
+}
+
+function bunny_normalization_add_menu(): void {
+    add_submenu_page(
+        'bunny-gallery-settings',
+        'Image Normalization',
+        'Normalization',
+        'manage_options',
+        'bunny-normalization-settings',
+        'bunny_normalization_settings_page'
+    );
+}
+add_action( 'admin_menu', 'bunny_normalization_add_menu' );
+
+function bunny_normalization_settings_page(): void {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+
+    require_once plugin_dir_path( __FILE__ ) . 'admin/class-admin-header.php';
+    ?>
+    <div class="wrap bunny-wrap" id="bunny-settings-wrap">
+
+        <?php BunnyNSFW\Admin_Header::render( 'bunny-normalization-settings', 'Image Normalization' ); ?>
+
+        <div class="bunny-page-content">
+
+            <p class="bunny-gallery-admin-desc">
+                <?php esc_html_e( 'Automatically normalizes images to a consistent aspect ratio on upload. Normalization runs before WordPress generates thumbnails, so all derived sizes are already consistent.', 'bunny-sfw-nsfw-gallery' ); ?>
+            </p>
+
+            <?php if ( isset( $_GET['settings-updated'] ) ) : ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><?php esc_html_e( 'Settings saved.', 'bunny-sfw-nsfw-gallery' ); ?></p>
+                </div>
+            <?php endif; ?>
+
+            <form method="post" action="options.php">
+                <?php
+                settings_fields( 'bunny_normalization_group' );
+                do_settings_sections( 'bunny-normalization-settings' );
+                submit_button( __( 'Save settings', 'bunny-sfw-nsfw-gallery' ) );
+                ?>
+            </form>
+
+        </div>
+    </div>
+    <?php
+}
+
+// -----------------------------------------------------------------------------
+// NORMALIZATION FIELD RENDERERS
+// -----------------------------------------------------------------------------
+
+function bunny_field_norm_enabled(): void {
+    $opts = get_option( BUNNY_NORMALIZATION_OPTION, [] );
+    $val  = $opts['enabled'] ?? false;
+    echo '<input type="checkbox" name="' . BUNNY_NORMALIZATION_OPTION . '[enabled]" value="1"' . checked( (bool) $val, true, false ) . '>';
+    echo '<p class="description">' . esc_html__( 'When enabled, images are normalized on upload before WordPress generates any thumbnails. Disabled by default.', 'bunny-sfw-nsfw-gallery' ) . '</p>';
+}
+
+function bunny_field_norm_ratio_mode(): void {
+    $opts    = get_option( BUNNY_NORMALIZATION_OPTION, [] );
+    $current = $opts['ratio_mode'] ?? bunny_normalization_hardcoded_defaults()['ratio_mode'];
+    $options = [
+        'auto'   => 'Auto — detect closest ratio automatically',
+        '1:1'    => '1:1 — square',
+        '4:5'    => '4:5 — portrait',
+        '1.91:1' => '1.91:1 — landscape',
+    ];
+    echo '<select name="' . BUNNY_NORMALIZATION_OPTION . '[ratio_mode]">';
+    foreach ( $options as $k => $label ) {
+        echo '<option value="' . esc_attr( $k ) . '"' . selected( $current, $k, false ) . '>' . esc_html( $label ) . '</option>';
+    }
+    echo '</select>';
+    echo '<p class="description">' . esc_html__( 'Auto compares the real ratio of each image against 1:1, 4:5, and 1.91:1 and picks the nearest. A fixed ratio forces all images to that target regardless of their original proportions.', 'bunny-sfw-nsfw-gallery' ) . '</p>';
+}
+
+function bunny_field_norm_method(): void {
+    $opts    = get_option( BUNNY_NORMALIZATION_OPTION, [] );
+    $current = $opts['method'] ?? bunny_normalization_hardcoded_defaults()['method'];
+    $options = [
+        'pad'        => 'Pad — expand canvas, never crop',
+        'crop'       => 'Crop — geometric center crop',
+        'smart_crop' => 'Smart Crop — center-biased crop',
+    ];
+    echo '<select name="' . BUNNY_NORMALIZATION_OPTION . '[method]">';
+    foreach ( $options as $k => $label ) {
+        echo '<option value="' . esc_attr( $k ) . '"' . selected( $current, $k, false ) . '>' . esc_html( $label ) . '</option>';
+    }
+    echo '</select>';
+    echo '<p class="description">';
+    esc_html_e( 'Pad: adds background space around the image to reach the target ratio — no pixels are removed. Crop: removes pixels from the sides. Smart Crop: same as Crop but biased toward the center of the image, which is where most subjects appear.', 'bunny-sfw-nsfw-gallery' );
+    echo '</p>';
+}
+
+function bunny_field_norm_bg_color(): void {
+    $opts    = get_option( BUNNY_NORMALIZATION_OPTION, [] );
+    $current = $opts['bg_color'] ?? bunny_normalization_hardcoded_defaults()['bg_color'];
+    $options = [
+        'white'       => 'White',
+        'black'       => 'Black',
+        'transparent' => 'Transparent (PNG and WebP only)',
+    ];
+    echo '<select name="' . BUNNY_NORMALIZATION_OPTION . '[bg_color]">';
+    foreach ( $options as $k => $label ) {
+        echo '<option value="' . esc_attr( $k ) . '"' . selected( $current, $k, false ) . '>' . esc_html( $label ) . '</option>';
+    }
+    echo '</select>';
+    echo '<p class="description">' . esc_html__( 'Only applies when Processing Method is set to Pad. Transparent is only effective for PNG and WebP — JPEG does not support transparency and will fall back to white.', 'bunny-sfw-nsfw-gallery' ) . '</p>';
+}
+
+function bunny_field_norm_tolerance(): void {
+    $opts = get_option( BUNNY_NORMALIZATION_OPTION, [] );
+    $val  = isset( $opts['tolerance'] ) ? (float) $opts['tolerance'] : 0.0;
+    echo '<input type="number" min="0" max="1" step="0.01" name="' . BUNNY_NORMALIZATION_OPTION . '[tolerance]" value="' . esc_attr( number_format( $val, 2 ) ) . '" class="small-text">';
+    echo '<p class="description">' . esc_html__( 'Acceptable difference between the image\'s real ratio and the target ratio (0.00–1.00). Set to 0 to always normalize. Example: 0.05 skips images that are already within 5% of the target ratio.', 'bunny-sfw-nsfw-gallery' ) . '</p>';
+}
+
+function bunny_field_norm_keep_original(): void {
+    $opts = get_option( BUNNY_NORMALIZATION_OPTION, [] );
+    $val  = isset( $opts['keep_original'] ) ? (bool) $opts['keep_original'] : true;
+    echo '<input type="checkbox" name="' . BUNNY_NORMALIZATION_OPTION . '[keep_original]" value="1"' . checked( $val, true, false ) . '>';
+    echo '<p class="description">' . esc_html__( 'Saves a copy of the original file before normalizing (e.g. photo_original.jpg alongside photo.jpg). The normalized version becomes the main WordPress attachment. Enabled by default.', 'bunny-sfw-nsfw-gallery' ) . '</p>';
+}

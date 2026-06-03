@@ -142,6 +142,10 @@
                                 att.get( 'url' ) ||
                                 ( sizes.large  && sizes.large.url  ) ||
                                 ( sizes.medium && sizes.medium.url ) || '';
+                    // Evitar re-render asíncrono si la URL no cambió.
+                    // Ese re-render desmonta el modal de Media Library cuando
+                    // todavía está abierto (primera selección), dejándolo en blanco.
+                    if ( url && url === imageUrl ) { return; }
                     set( { imageUrl: url } );
                 }
                 att.get( 'url' ) ? onReady() : att.fetch().then( onReady ).catch( onReady );

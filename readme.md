@@ -6,7 +6,7 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 
 ## Versión actual
 
-**0.5.0** — Nuevo bloque: Bunny Content Section
+**0.6.0** — Image Normalization
 
 ---
 
@@ -252,6 +252,18 @@ hardcoded fallback (bunny_gallery_hardcoded_defaults())
 - **Preview:** el editor reacciona al toggle de forma inmediata, igual que el frontend
 - **Por bloque:** SFW y NSFW comparten el mismo toggle dentro de cada bloque; no afecta otros bloques
 - Archivos modificados: `block.js`, `includes/class-plugin.php`
+
+### 0.6.0 — 2025-06
+- **Nuevo:** Sistema de normalización automática de imágenes al subir (`Image_Normalizer`)
+- **Nuevo:** Hook `wp_handle_upload` — la normalización ocurre antes de que WordPress genere thumbnails; todos los tamaños derivados salen normalizados
+- **Nuevo:** Setting `Enable Image Normalization` (OFF por defecto)
+- **Nuevo:** Setting `Ratio Mode` — Auto / 1:1 / 4:5 / 1.91:1
+- **Nuevo:** Setting `Processing Method` — Pad / Crop / Smart Crop
+- **Nuevo:** Setting `Background Color` — White / Black / Transparent
+- **Nuevo:** Setting `Ratio Tolerance` — 0.00–1.00; con 0 siempre normaliza
+- **Nuevo:** Setting `Keep Original` (ON por defecto) — guarda copia `photo_original.jpg` antes de normalizar
+- **Nuevo:** Página `Normalization` como submenú y pestaña del header Bunny Admin
+- **Nuevo:** `includes/class-image-normalizer.php` — GD puro, EXIF orientation, soporte JPG/PNG/WebP
 
 ### 0.4.3 — Gutenberg fixes & columns UX
 
