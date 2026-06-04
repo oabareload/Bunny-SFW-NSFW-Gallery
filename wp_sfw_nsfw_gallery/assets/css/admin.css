@@ -67,3 +67,139 @@
 	position: relative !important;
 	bottom: auto !important;
 }
+
+/* ==========================================================================
+   Normalization settings — card layout
+   ========================================================================== */
+
+.bunny-norm-form {
+	max-width: 720px;
+}
+
+.bunny-card {
+	background: #fff;
+	border: 1px solid var(--bunny-border);
+	border-radius: var(--bunny-radius);
+	box-shadow: 0 1px 4px rgba(0,0,0,.05);
+	margin-bottom: 20px;
+	overflow: hidden;
+}
+
+.bunny-card-header {
+	padding: 14px 20px 12px;
+	border-bottom: 1px solid var(--bunny-border);
+	background: var(--bsg-gray-100);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.bunny-card-title {
+	margin: 0;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	color: var(--bsg-gray-700);
+}
+
+.bunny-card-icon {
+	font-size: 15px;
+	line-height: 1;
+}
+
+.bunny-card-body {
+	padding: 4px 0;
+}
+
+/* Each setting row inside a card */
+.bunny-field-row {
+	padding: 14px 20px;
+	border-bottom: 1px solid var(--bunny-border);
+	display: grid;
+	grid-template-columns: 200px 1fr;
+	gap: 8px 20px;
+	align-items: start;
+}
+
+.bunny-field-row:last-child {
+	border-bottom: none;
+}
+
+.bunny-field-label {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--bsg-gray-700);
+	padding-top: 6px;
+	line-height: 1.4;
+}
+
+.bunny-field-label em {
+	display: block;
+	font-style: normal;
+	font-size: 11px;
+	font-weight: 400;
+	color: var(--bsg-gray-400);
+	margin-top: 2px;
+}
+
+.bunny-field-control {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.bunny-field-control select,
+.bunny-field-control input[type="number"],
+.bunny-field-control input[type="text"] {
+	border-radius: var(--bsg-radius-sm);
+	max-width: 320px;
+	width: 100%;
+}
+
+.bunny-field-desc {
+	font-size: 12px;
+	color: var(--bsg-gray-400);
+	line-height: 1.55;
+	margin: 0;
+}
+
+/* Checkbox row variant — single column, inline label */
+.bunny-field-row--check {
+	grid-template-columns: 1fr;
+}
+
+.bunny-field-check-wrap {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+}
+
+.bunny-field-check-wrap input[type="checkbox"] {
+	margin-top: 2px;
+	flex-shrink: 0;
+}
+
+.bunny-field-check-text {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.bunny-field-check-text strong {
+	font-size: 13px;
+	color: var(--bsg-gray-700);
+}
+
+/* Save button row */
+.bunny-form-actions {
+	margin-top: 8px;
+	padding-top: 4px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+	.bunny-field-row {
+		grid-template-columns: 1fr;
+	}
+}

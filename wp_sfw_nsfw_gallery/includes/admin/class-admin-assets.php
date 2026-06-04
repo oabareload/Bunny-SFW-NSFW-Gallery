@@ -25,6 +25,7 @@ final class Admin_Assets {
 	private static array $plugin_pages = array(
 		'bunny-gallery-settings',
 		'bunny-normalization-settings',
+		'bunny-image-settings',
 	);
 
 	/**

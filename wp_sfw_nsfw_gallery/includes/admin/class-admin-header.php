@@ -33,6 +33,7 @@ final class Admin_Header {
 	private static array $tabs = array(
 		'bunny-gallery-settings'       => 'Settings',
 		'bunny-normalization-settings' => 'Normalization',
+		'bunny-image-settings'         => 'Image Settings',
 	);
 
 	/**

@@ -6,7 +6,7 @@ Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/N
 
 ## Versión actual
 
-**0.6.0** — Image Normalization
+**0.6.2** — Image Settings UI, optional upload snippets
 
 ---
 
@@ -100,6 +100,19 @@ Ubicación: **Bunny Gallery** (menú lateral de WordPress Admin)
 | Modo de caption            | `hidden` / `minimal` (título + 1 línea) / `full` (todos los campos) | `minimal` |
 
 ---
+
+### Sección: Image Settings
+
+| Setting                      | Descripción                                                                                  | Default |
+|------------------------------|----------------------------------------------------------------------------------------------|---------|
+| Resize images on upload      | Redimensiona imágenes que excedan las dimensiones máximas al subir (después de Normalization) | `false` |
+| Max width / Max height       | Dimensiones máximas usadas por el redimensionado                                              | `1920`  |
+| Big image threshold enabled  | Habilita el umbral de "big image" de WordPress                                              | `false` |
+| Big image threshold (px)     | Valor del umbral grande                                                                         | `1920`  |
+| Disable intermediate sizes   | Lista de tamaños intermedios a desactivar (thumbnail, medium, large, full)                   | `[]`    |
+| Safe rename uploaded images  | (Opcional) Reescribe el nombre de archivo al subir: usa el slug del post + sufijo único. Deshabilitado por defecto. | `false` |
+| Auto-fill ALT from post title| (Opcional) Al agregar un attachment, establece el ALT usando el título del post padre + " - BunnyChase". Deshabilitado por defecto. | `false` |
+
 
 ## Estilos de protección NSFW
 
@@ -252,6 +265,21 @@ hardcoded fallback (bunny_gallery_hardcoded_defaults())
 - **Preview:** el editor reacciona al toggle de forma inmediata, igual que el frontend
 - **Por bloque:** SFW y NSFW comparten el mismo toggle dentro de cada bloque; no afecta otros bloques
 - Archivos modificados: `block.js`, `includes/class-plugin.php`
+
+-### 0.6.2 — 2026-06
+- **New:** Admin page `Image Settings` — consistent header and UI with other plugin pages.
+- **New (optional):** "Safe rename uploaded images" — rewrites uploaded image filenames to use the post slug + unique suffix to avoid collisions. Disabled by default.
+- **New (optional):** "Auto-fill ALT from post title" — sets attachment ALT to the parent post title plus " - BunnyChase" when adding attachments. Disabled by default.
+- **UX:** Image Settings UI follows the same `bunny-*` cards and header used by other pages.
+-
+### 0.6.1 — 2025-06
+- **Nuevo:** Setting `Background Fill Mode` — reemplaza el color fijo con tres modos: `solid_color`, `corner_sample`, `dominant_color`
+- **Nuevo:** `corner_sample` — lee una región 4×4px del corner elegido (top_left / top_right / bottom_left / bottom_right / average_corners) y promedia el color resultante
+- **Nuevo:** `dominant_color` — reduce la imagen a un thumbnail 50×50 mediante `imagecopyresampled` y promedia todos los píxeles en un grid con step=2 (625 muestras); puro GD, sin clustering, sin librerías externas
+- **Nuevo:** Setting `Sample Corner` — visible únicamente cuando fill_mode es `corner_sample`; oculto en otros modos
+- **Mejora:** Setting `Background Color` ahora se muestra/oculta según fill_mode activo; solo visible en `solid_color`
+- **Mejora:** Show/hide dinámico en admin sin dependencias externas — JS vanilla inline, opera a nivel de `<tr>` completo
+- Compatibilidad completa con JPG, PNG, WebP, Smart Crop y Keep Original
 
 ### 0.6.0 — 2025-06
 - **Nuevo:** Sistema de normalización automática de imágenes al subir (`Image_Normalizer`)
