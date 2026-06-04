@@ -1043,6 +1043,29 @@ function bunny_image_settings_page(): void {
                 <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Settings saved.', 'bunny-sfw-nsfw-gallery' ); ?></p></div>
             <?php endif; ?>
 
+            <?php
+            // Notice: Big Image Threshold < Resize Max Width (conflicto silencioso).
+            if ( ! empty( $opts['big_image_enabled'] ) && ! empty( $opts['resize_enabled'] ) ) {
+                $notice_threshold = (int) ( $opts['big_image_threshold'] ?? $d['big_image_threshold'] );
+                $notice_max_w     = (int) ( $opts['resize_max_width']   ?? $d['resize_max_width'] );
+                if ( $notice_threshold < $notice_max_w ) :
+            ?>
+            <div class="notice notice-warning">
+                <p>
+                    <strong><?php esc_html_e( 'Heads up:', 'bunny-sfw-nsfw-gallery' ); ?></strong>
+                    <?php printf(
+                        /* translators: 1: threshold px value, 2: resize max width px value */
+                        esc_html__( 'Big Image Threshold (%1$dpx) is lower than Resize Max Width (%2$dpx). WordPress will scale the original down to %1$dpx before the plugin runs, so the Resize Limit will never be reached. Images will be stored at %1$dpx, not %2$dpx.', 'bunny-sfw-nsfw-gallery' ),
+                        $notice_threshold,
+                        $notice_max_w
+                    ); ?>
+                </p>
+            </div>
+            <?php
+                endif;
+            }
+            ?>
+
             <form method="post" action="options.php" class="bunny-norm-form">
                 <?php settings_fields( 'bunny_image_settings_group' ); ?>
 

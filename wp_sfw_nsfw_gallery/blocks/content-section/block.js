@@ -271,7 +271,9 @@
                                 // Botón "Cambiar imagen" debajo de la imagen, fuera del wrap
                                 el( MediaUpload, {
                                     onSelect: function ( media ) {
-                                        set( { imageId: media.id, imageUrl: media.url } );
+                                        var url = ( media.sizes && media.sizes[ imageSize ] && media.sizes[ imageSize ].url )
+                                                  || media.url;
+                                        set( { imageId: media.id, imageUrl: url } );
                                     },
                                     allowedTypes: [ 'image' ],
                                     multiple:     false,
@@ -294,7 +296,9 @@
                             // Placeholder — sin imagen seleccionada
                             : el( MediaUpload, {
                                 onSelect: function ( media ) {
-                                    set( { imageId: media.id, imageUrl: media.url } );
+                                    var url = ( media.sizes && media.sizes[ imageSize ] && media.sizes[ imageSize ].url )
+                                              || media.url;
+                                    set( { imageId: media.id, imageUrl: url } );
                                 },
                                 allowedTypes: [ 'image' ],
                                 multiple:     false,
@@ -338,7 +342,6 @@
                         el( RichText, {
                             tagName:        'div',
                             className:      'bunny-cs-content',
-                            multiline:      'p',
                             value:          content,
                             onChange:       function ( v ) { set( { content: v } ); },
                             placeholder:    'Escribe el contenido aquí…',

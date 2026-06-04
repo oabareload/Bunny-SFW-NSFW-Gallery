@@ -1,374 +1,330 @@
 # Bunny SFW&NSFW Gallery
 
-Plugin de WordPress para Gutenberg que permite crear galerías con control SFW/NSFW basado en cookies, lightbox nativo aislado por instancia y sistema de defaults globales.
+WordPress Gutenberg plugin for SFW/NSFW image galleries with cookie-based age verification, image normalization on upload, and upload-time image controls.
 
 ---
 
-## Versión actual
+## Description
 
-**0.6.2** — Image Settings UI, optional upload snippets
+Bunny SFW&NSFW Gallery provides two Gutenberg blocks and a full admin settings suite covering gallery defaults, NSFW protection styles, lightbox configuration, image normalization, and upload-time image constraints.
 
----
-
-## Características
-
-- Bloque Gutenberg dinámico (render en PHP, sin build system)
-- **Bunny Gallery** — galería SFW/NSFW con blur, lightbox, overlays y cookie
-- **Bunny Content Section** — sección imagen + título + texto enriquecido con layout responsive
-- Modo SFW / NSFW por bloque (galería)
-- **Títulos de galería** por modo (SFW / NSFW), override por bloque
-- **Tamaño de imagen** configurable: thumbnail, medium, large, full
-- **Aspect ratio** configurable: square, portrait, landscape, original
-- Blur configurable con **intensidad en px** (0–20, CSS variable `--bunny-blur`)
-- **3 estilos de protección NSFW**: minimal, overlay, hidden
-- **Modal elegante** (modo minimal) con backdrop, ESC y cancelar
-- **Badge flotante** sobre las imágenes en modo minimal (tipo Patreon/Pixiv)
-- **Botón de re-bloqueo** visible cuando la cookie existe
-- Texto del botón desbloquear configurable globalmente
-- Desbloqueo sin recarga, con propagación en cascada a galerías de la misma página
-- **Lightbox nativo aislado por instancia** — botones prev/next fijos al viewport
-- Fade al cambiar imagen en lightbox
-- Soporte táctil (swipe izquierda/derecha en lightbox)
-- Navegación por teclado en lightbox (←, →, Escape)
-- Counter visual: `3 / 12`
-- **Settings globales** en menú propio: Bunny Gallery
-- Cadena de resolución: bloque → setting global → fallback hardcoded
-
-## Bloques disponibles
-
-### Bunny Gallery
-
-Galería de imágenes con sistema SFW/NSFW, blur, lightbox nativo, overlays y desbloqueo por cookie. Ver sección Settings globales para opciones de configuración.
-
-### Bunny Content Section
-
-Sección de contenido con imagen, título y texto enriquecido.
-
-**Layout desktop:** dos columnas (imagen + texto), configurable imagen izquierda o derecha.  
-**Layout tablet/mobile:** colapsa automáticamente a columna única — imagen arriba, texto abajo.  
-**Opciones en inspector:**
-- Posición de imagen (izquierda / derecha)
-- Tamaño de imagen (thumbnail / medium / large / full)
-- Altura visual (small 200px / medium 320px / large 480px)
-- Abrir imagen en lightbox (on/off)
-- Mostrar título (on/off)
-
-**Texto:** soporta párrafos, listas, enlaces, negritas y cursivas vía RichText de Gutenberg.  
-**Lightbox:** reutiliza el mismo sistema de lightbox del plugin — mismo estilo, sin duplicar código.
+All blocks are server-side rendered (no build system required). The plugin is designed for WordPress 6.5+ with PHP 8.2+.
 
 ---
 
-## Settings globales
+## Features
 
-Ubicación: **Bunny Gallery** (menú lateral de WordPress Admin)
+### Blocks
 
-### Sección: Galería
+**Bunny Gallery (`bunny/nsfw-gallery`)**
+- SFW / NSFW mode toggle per block
+- Configurable columns (1–12), image size, aspect ratio and link behaviour
+- Three NSFW protection styles: Minimal (blur + floating badge + modal), Overlay (semi-transparent layer + centered button), Hidden (solid dark layer + strong blur)
+- Cookie-based unlock with cascading unlock across all NSFW galleries on the page
+- Re-lock button visible when the consent cookie exists
+- Native lightbox: per-instance isolation, prev/next, keyboard navigation (← → Escape), touch swipe, fade transition, counter pill, optional thumbnail rail, caption fields, dark/light/auto theme, accent colour
+- Per-block title (SFW/NSFW) with show/hide toggle
+- Global defaults with per-block override; fallback chain: block → global setting → hardcoded default
 
-| Setting              | Descripción                                              | Default   |
-|----------------------|----------------------------------------------------------|-----------|
-| Columnas             | Número de columnas del grid (1–12)                       | `5`       |
-| Tamaño de imagen     | `thumbnail` / `medium` / `large` / `full`                | `thumbnail`   |
-| Aspect ratio         | `square` / `portrait` / `landscape` / `original`         | `portrait`  |
-| Comportamiento enlace| `none` / `lightbox` / `file` / `attachment`              | `lightbox`    |
-| Nueva pestaña        | Abre enlaces en `_blank` (solo file/attachment)          | `true`   |
+**Bunny Content Section (`bunny/content-section`)**
+- Two-column layout (image + rich text), image position left or right
+- Responsive: collapses to single column on ≤768px, image always first
+- Configurable image size, visual height (small 200px / medium 320px / large 480px), image width ratio (25 / 33 / 40 / 50 %)
+- RichText: paragraphs, lists, links, bold, italic
+- Optional lightbox for the image (reuses the gallery lightbox system; falls back to a standalone minimal lightbox when no gallery block is on the same page)
+- Show/hide title toggle
 
-### Sección: Protección NSFW
+### Image Normalization
 
-| Setting                | Descripción                                              | Default                                |
-|------------------------|----------------------------------------------------------|----------------------------------------|
-| Estilo de protección   | `minimal` / `overlay` / `hidden`                         | `minimal`                              |
-| Blur NSFW activado     | Aplica blur hasta confirmación de edad                   | `true`                                 |
-| Intensidad del blur    | Slider 0–20px, con preview visual                        | `12`                                   |
-| Mensaje NSFW           | Texto del overlay / modal de verificación                | `Este contenido es solo para adultos.` |
-| Texto botón desbloquear| Texto del botón en overlay y modal                       | `Ver contenido (+18)`                  |
+Accessed via **Bunny Gallery → Normalization**. Normalizes images to a consistent aspect ratio on upload, before WordPress generates any thumbnails.
 
-### Sección: Títulos
+- Enable / disable toggle (disabled by default)
+- **Ratio Mode:** Auto (picks closest enabled format) or fixed (forces a specific format)
+- **Normalization Formats:** five configurable slots (1:1, 4:5, 1.91:1, 9:16, 4.74:1) — enable or disable each independently
+- **Tolerance:** 0.00–1.00 — skip images already within the configured delta of the target ratio
+- **Processing Method:** Pad (expand canvas, no pixels removed), Crop (centre crop), Smart Crop (centre-biased crop)
+- **Background Fill Mode** (Pad only): Solid Color (white / black / transparent), Corner Sample (4×4 px region average at chosen corner), Dominant Color (50×50 downsample + pixel average via GD)
+- **Keep Original:** saves a `_original` copy of the file before normalizing (enabled by default)
+- Supports JPEG, PNG, WebP; EXIF orientation correction for JPEG; pure GD, no external dependencies
 
-| Setting      | Descripción                                   | Default |
-|--------------|-----------------------------------------------|---------|
-| Título SFW   | Título por defecto para galerías SFW          | vacío   |
-| Título NSFW  | Título por defecto para galerías NSFW         | vacío   |
+### Image Settings
 
-### Sección: Lightbox
+Accessed via **Bunny Gallery → Image Settings**. Upload-time constraints applied after normalization.
 
-| Setting                    | Descripción                                                        | Default   |
-|----------------------------|---------------------------------------------------------------------|-----------|
-| Miniaturas en lightbox     | Carrusel horizontal inferior con thumbnails WP de la galería actual | `true`    |
-| Tema del lightbox          | `dark` / `light` / `auto` (sigue `prefers-color-scheme`)           | `dark`    |
-| Color de acento            | Color picker — thumbnail activo, counter y focus states            | `#7c6aff` |
-| Campos de caption          | Checkboxes: `alt` / `title` / `caption` / `description`            | ninguno   |
-| Modo de caption            | `hidden` / `minimal` (título + 1 línea) / `full` (todos los campos) | `minimal` |
+- **Resize Limit:** downscales images exceeding configured max width/height (priority 20, runs after normalization); aspect ratio preserved; validates both `resize()` and `save()` results
+- **Big Image Threshold:** overrides WordPress core `big_image_size_threshold`; informative admin notice shown when threshold is lower than resize max width
+- **Intermediate Sizes:** disable generation of selected sizes (medium, medium_large, large, 1536×1536, 2048×2048) per upload
+- **Safe Filename Rename** *(optional, disabled by default):* rewrites uploaded image filenames to post slug + unique suffix; all `post_id` reads sanitized with `absint()`
+- **Automatic ALT Generation** *(optional, disabled by default):* sets attachment ALT to parent post title + " - BunnyChase" on `add_attachment`; all `post_id` reads sanitized with `absint()`
 
----
+### Diagnostics
 
-### Sección: Image Settings
+Accessed via **Bunny Gallery → Normalization → Advanced & Diagnostics**.
 
-| Setting                      | Descripción                                                                                  | Default |
-|------------------------------|----------------------------------------------------------------------------------------------|---------|
-| Resize images on upload      | Redimensiona imágenes que excedan las dimensiones máximas al subir (después de Normalization) | `false` |
-| Max width / Max height       | Dimensiones máximas usadas por el redimensionado                                              | `1920`  |
-| Big image threshold enabled  | Habilita el umbral de "big image" de WordPress                                              | `false` |
-| Big image threshold (px)     | Valor del umbral grande                                                                         | `1920`  |
-| Disable intermediate sizes   | Lista de tamaños intermedios a desactivar (thumbnail, medium, large, full)                   | `[]`    |
-| Safe rename uploaded images  | (Opcional) Reescribe el nombre de archivo al subir: usa el slug del post + sufijo único. Deshabilitado por defecto. | `false` |
-| Auto-fill ALT from post title| (Opcional) Al agregar un attachment, establece el ALT usando el título del post padre + " - BunnyChase". Deshabilitado por defecto. | `false` |
-
-
-## Estilos de protección NSFW
-
-| Estilo    | Comportamiento                                                             |
-|-----------|----------------------------------------------------------------------------|
-| `minimal` | Blur en imágenes + badge flotante. Click abre modal elegante (tipo Patreon)|
-| `overlay` | Capa semitransparente con botón centrado (tipo X/Twitter)                  |
-| `hidden`  | Capa sólida oscura + blur fuerte. Contenido casi invisible                 |
+- **Debug Log:** records a detailed entry per normalized image — filename, original dimensions, original ratio, ratio mode, selected ratio, method, executed function, fill mode, target canvas dimensions, saved dimensions
+- **Log Viewer:** opens `bunny-gallery-debug.log` as plain text in a new tab (served before any HTML output to avoid headers-already-sent errors)
+- **Log Size indicator:** shows current log file size in the admin UI
+- **Clear Log on Save:** deletes the log file on the next settings save; flag is not persisted
 
 ---
 
-## Cookie utilizada
+## Requirements
 
-```
-bunny_nsfw_age = 1
-```
-
-Duración: 365 días. Se establece al confirmar edad en cualquier galería NSFW.  
-Al estar presente, todas las galerías NSFW de la página se desbloquean en cascada.  
-El botón **"🔒 Volver a bloquear contenido NSFW"** aparece solo cuando la cookie existe.
+- **WordPress:** 6.5 or higher
+- **PHP:** 8.2 or higher (compatible with PHP 8.4)
+- **GD extension:** required for Image Normalization
+- No external dependencies, no build system, no npm
 
 ---
 
-## Comportamiento de linkTo
+## Installation
 
-| Valor        | Resultado                                                 |
-|--------------|-----------------------------------------------------------|
-| `none`       | La imagen no tiene enlace                                 |
-| `lightbox`   | Abre la imagen a pantalla completa con el lightbox nativo |
-| `file`       | Enlace directo al archivo de media (URL original)         |
-| `attachment` | Enlace a la página de adjunto de WordPress                |
-
----
-
-## Lightbox
-
-- Aislado por instancia: cada `.bunny-gallery-wrapper` tiene su propio objeto `BunnyLightbox`
-- Una galería SFW y una NSFW en el mismo post nunca comparten imágenes
-- **Botones prev/next fijos al viewport** — no se mueven al cambiar imagen
-- **Fade de imagen** al navegar (opacity 0→1)
-- Swipe táctil (delta > 50px)
-- Teclado: ← → navegan, Escape cierra (solo activo cuando el lightbox está abierto)
-- Counter visual en la parte inferior: `N / Total`
-- Solo se activa cuando `data-link="lightbox"`
+1. Copy the `wp_sfw_nsfw_gallery` folder into `/wp-content/plugins/`
+2. Activate the plugin from the WordPress admin panel
+3. *(Optional)* Configure global defaults under **Bunny Gallery** in the admin sidebar
+4. *(Optional)* Configure image normalization under **Bunny Gallery → Normalization**
+5. *(Optional)* Configure upload constraints under **Bunny Gallery → Image Settings**
+6. Insert the **Bunny Gallery** or **Bunny Content Section** block in any post or page
 
 ---
 
-## Variables CSS emitidas por bloque
+## Usage
 
-| Variable        | Valor                          | Uso                                 |
-|-----------------|--------------------------------|-------------------------------------|
-| `--bunny-cols`  | número de columnas             | grid-template-columns               |
-| `--bunny-blur`  | intensidad en px (ej: `12px`)  | filter: blur() en imágenes NSFW     |
-| `--bunny-ratio` | aspect-ratio CSS (ej: `1 / 1`) | aspect-ratio en .bunny-gallery-item |
+### Bunny Gallery block
+
+1. Insert the **Bunny Gallery** block in the editor
+2. Click the placeholder to open the Media Library and select images
+3. Toggle NSFW mode in the block inspector if the content requires it
+4. Configure columns, image size, aspect ratio, link behaviour and titles in the inspector sidebar
+5. Publish — global defaults apply automatically to fields without a per-block value
+
+### Bunny Content Section block
+
+1. Insert the **Bunny Content Section** block in the editor
+2. Click the image placeholder to select an image from the Media Library
+3. Write the title and body content directly in the block
+4. Configure image position, size, height, lightbox and title visibility in the inspector sidebar
+5. Publish
+
+### Image Normalization
+
+1. Go to **Bunny Gallery → Normalization**
+2. Enable normalization and configure the desired method and formats
+3. Upload images — normalization runs automatically before WordPress generates thumbnails
+
+### Image Settings
+
+1. Go to **Bunny Gallery → Image Settings**
+2. Enable the desired constraints (resize limit, big image threshold, intermediate size disabling)
+3. Optionally enable filename renaming and automatic ALT generation under Automation
 
 ---
 
-## Estructura de archivos
+## Settings reference
+
+### Global Gallery Settings (`bunny_gallery_defaults`)
+
+| Setting | Description | Default |
+|---|---|---|
+| Columns | Grid column count (1–12) | `5` |
+| Image size | `thumbnail` / `medium` / `large` / `full` | `large` |
+| Aspect ratio | `square` / `portrait` / `landscape` / `original` | `square` |
+| Link behaviour | `none` / `lightbox` / `file` / `attachment` | `none` |
+| Open in new tab | Applies to `file` and `attachment` only | `false` |
+| NSFW display style | `minimal` / `overlay` / `hidden` | `minimal` |
+| Blur enabled | Applies blur to NSFW images until age confirmation | `true` |
+| Blur intensity | 0–20 px, CSS variable `--bunny-blur` | `12` |
+| NSFW message | Text shown in the overlay / modal | *(default string)* |
+| Unlock button text | Text of the unlock button | *(default string)* |
+| SFW title | Default title for SFW galleries | *(empty)* |
+| NSFW title | Default title for NSFW galleries | *(empty)* |
+| Show lightbox thumbnails | Thumbnail rail at the bottom of the lightbox | `true` |
+| Lightbox theme | `dark` / `light` / `auto` | `dark` |
+| Lightbox accent colour | Colour picker for active thumbnail, counter, focus | `#7c6aff` |
+| Caption fields | `alt` / `title` / `caption` / `description` | *(none)* |
+| Caption mode | `hidden` / `minimal` / `full` | `minimal` |
+
+### Normalization Settings (`bunny_normalization_settings`)
+
+| Setting | Description | Default |
+|---|---|---|
+| Enabled | Activates normalization on upload | `false` |
+| Keep Original | Saves `_original` backup before normalizing | `true` |
+| Ratio Mode | `auto` or a fixed format name | `auto` |
+| Tolerance | 0.00–1.00 delta to skip near-matching images | `0.00` |
+| Method | `pad` / `crop` / `smart_crop` | `pad` |
+| Fill Mode | `solid_color` / `corner_sample` / `dominant_color` | `solid_color` |
+| Background Color | `white` / `black` / `transparent` | `white` |
+| Sample Corner | Corner region to average for fill colour | `top_left` |
+| Debug Log | Records a diagnostic entry per normalized image | `false` |
+
+### Image Settings (`bunny_image_settings`)
+
+| Setting | Description | Default |
+|---|---|---|
+| Resize enabled | Downscales images exceeding max dimensions | `false` |
+| Max width | Maximum pixel width for resize | `1920` |
+| Max height | Maximum pixel height for resize | `1920` |
+| Big image enabled | Overrides `big_image_size_threshold` | `false` |
+| Big image threshold | Threshold value in pixels | `1920` |
+| Disabled sizes | Intermediate sizes to skip on upload | *(none)* |
+| Upload rename enabled | Rewrites filenames to post slug + unique suffix | `false` |
+| Auto ALT enabled | Sets ALT from parent post title on upload | `false` |
+
+---
+
+## File structure
 
 ```
 wp_sfw_nsfw_gallery/
-├── wp_sfw_nsfw_gallery.php     # Plugin header, constantes, bootstrap
+├── wp_sfw_nsfw_gallery.php          # Plugin header, constants, bootstrap
 ├── includes/
-│   ├── settings.php            # Options API, menú, bunny_get_setting()
-│   ├── class-plugin.php        # register_block, render_callback (galería + content section)
-│   ├── class-loader.php        # Registro de hooks
-│   ├── class-activator.php     # Hook de activación
-│   ├── class-deactivator.php   # Hook de desactivación
-│   └── helpers.php             # Funciones auxiliares
+│   ├── settings.php                 # Options API, menus, sanitization, settings pages
+│   ├── class-plugin.php             # Block registration, render callbacks
+│   ├── class-image-normalizer.php   # Upload-time normalization (GD)
+│   ├── class-image-settings.php     # Upload-time constraints (resize, threshold, sizes)
+│   ├── class-loader.php             # Hook registration
+│   ├── class-activator.php          # Activation hook
+│   ├── class-deactivator.php        # Deactivation hook
+│   ├── helpers.php                  # Utility functions
+│   └── admin/
+│       ├── class-admin-header.php   # Shared admin header + tab navigation
+│       └── class-admin-assets.php   # Admin CSS enqueue (scoped to plugin screens)
+├── assets/
+│   └── css/
+│       ├── bunny-admin.css          # Shared admin UI tokens and layout
+│       └── admin.css                # Plugin-specific admin styles
 └── blocks/
     ├── nsfw-gallery/
-    │   ├── block.js            # Editor Gutenberg (sin JSX, sin build)
-    │   ├── frontend.js         # Vanilla JS: NSFW display styles + BunnyLightbox
-    │   └── style.css           # Estilos: grid, minimal badge, modal, overlay, lightbox
+    │   ├── block.js                 # Gutenberg editor (no JSX, no build)
+    │   ├── frontend.js              # Vanilla JS: NSFW styles, BunnyLightbox, cookie
+    │   └── style.css                # Grid, badge, modal, overlay, lightbox styles
     └── content-section/
-        ├── block.js            # Editor Gutenberg (sin JSX, sin build)
-        ├── frontend.js         # Vanilla JS: lightbox single-image para Content Section
-        └── style.css           # Estilos: layout responsive dos columnas, imagen, texto
+        ├── block.js                 # Gutenberg editor (no JSX, no build)
+        ├── frontend.js              # Vanilla JS: lightbox (shared or standalone)
+        └── style.css                # Two-column layout, image, text, responsive
 ```
 
 ---
 
-## Cadena de resolución de atributos
+## Attribute resolution chain
 
 ```
-block attribute (valor guardado en el bloque)
-        ↓  si null o vacío
-plugin setting (wp_options → bunny_gallery_defaults)
-        ↓  si no existe
+block attribute (value saved in the block)
+        ↓  if null or empty
+global plugin setting (wp_options → bunny_gallery_defaults)
+        ↓  if not set
 hardcoded fallback (bunny_gallery_hardcoded_defaults())
 ```
 
 ---
 
-## Requisitos
+## Cookie
 
-- WordPress 6.0+
-- PHP 8.0+
-- Sin dependencias externas ni build system
+```
+bunny_nsfw_age = 1
+```
 
----
-
-## Instalación
-
-1. Copiar la carpeta `wp_sfw_nsfw_gallery` en `/wp-content/plugins/`
-2. Activar el plugin desde el panel de administración
-3. (Opcional) Configurar defaults en **Bunny Gallery** (menú lateral)
-4. Insertar el bloque **Bunny Gallery** en cualquier entrada o página
-
----
-
-## Uso básico
-
-1. Insertar bloque "Bunny Gallery" en el editor
-2. Seleccionar imágenes con el selector de medios
-3. Activar modo NSFW si el contenido lo requiere
-4. Configurar título, columnas, aspect ratio, tamaño y enlace en el inspector lateral
-5. Publicar — los defaults globales se aplican automáticamente a campos sin valor propio
+Duration: 365 days. Set when the user confirms age on any NSFW gallery. When present, all NSFW galleries on the page unlock in cascade. The **"🔒 Volver a bloquear contenido NSFW"** button is visible only when the cookie exists.
 
 ---
 
 ## Changelog
 
-### 0.5.0 — Nuevo bloque: Bunny Content Section
+### 1.0.0 — First Stable Release
 
-- **Nuevo bloque:** `bunny/content-section` — sección imagen + título + texto enriquecido
-- **Layout desktop:** grid dos columnas (ratio 1fr/2fr), imagen posicionable izquierda o derecha
-- **Layout responsive:** colapsa a columna única en tablet/mobile (≤768px), imagen siempre arriba
-- **Altura visual configurable:** small (200px) / medium (320px) / large (480px) via CSS variable `--bunny-cs-img-height`
-- **Tamaño de imagen:** thumbnail / medium / large / full (mismo sistema que la galería)
-- **RichText:** soporta párrafos, listas, enlaces, negritas y cursivas
-- **Lightbox:** reutiliza el overlay del sistema existente — sin duplicar código
-- **InspectorControls:** posición de imagen, tamaño, altura visual, toggle lightbox, toggle mostrar título
-- **Render PHP:** `render_content_section()` en `class-plugin.php`, salida sanitizada con `wp_kses_post`
-- Nuevos archivos: `blocks/content-section/block.js`, `frontend.js`, `style.css`
-- Modificados: `wp_sfw_nsfw_gallery.php`, `includes/class-plugin.php`, `readme.md`
+- First stable release
+- Added configurable normalization formats (1:1, 4:5, 1.91:1, 9:16, 4.74:1) with per-format enable/disable
+- Added Image Settings module: resize limits, big image threshold, intermediate size controls
+- Added resize limit error handling (`is_wp_error` on both `resize()` and `save()`)
+- Added admin notice when big image threshold is lower than resize max width
+- Added automatic filename renaming (post slug + unique suffix)
+- Added automatic ALT generation from parent post title
+- All `post_id` reads from `$_POST` / `$_REQUEST` sanitized with `absint()`
+- Improved Content Section `onSelect`: resolves correct image size URL immediately, avoiding full-size flash in the editor
+- Improved NSFW Gallery `onSelect`: same fix applied
+- Improved lightbox compatibility for Content Section: standalone `BunnyCSLightbox` when no gallery block is present on the page; reuses gallery lightbox CSS classes
+- Removed deprecated `RichText multiline="p"` prop from Content Section
+- Multiple stability and compatibility improvements
 
-### 0.4.5 — Fix blur intensity control empty on block open
+### 0.6.2
 
-- **Fix:** el control `RangeControl` de intensidad del blur aparecía vacío al seleccionar el bloque — el slider no mostraba ningún valor hasta que el usuario lo movía
-- **Causa:** `blurIntensity` podía ser `undefined` en bloques donde el atributo no estaba serializado (valor coincidente con default o bloque antiguo); `RangeControl` recibe `undefined` y no renderiza ningún valor
-- **Solución:** `value` del control ahora usa `blurIntensity !== undefined && blurIntensity !== null ? blurIntensity : D.blur_intensity` — mismo patrón que el control de columnas
-- Archivo modificado: `blocks/nsfw-gallery/block.js`
+- New admin page: Image Settings — consistent header and UI with other plugin pages
+- New (optional): Safe rename uploaded images — post slug + unique suffix, disabled by default
+- New (optional): Auto-fill ALT from post title — sets ALT to post title + " - BunnyChase" on upload, disabled by default
 
-### 0.4.4 — Toggle mostrar/ocultar título por bloque
+### 0.6.1
 
-- **Nuevo:** Atributo `showTitle` (boolean, default `true`) por bloque — controla si se renderiza el título de la galería
-- **Nuevo:** `ToggleControl` "Mostrar título" en el panel **Títulos** del inspector de Gutenberg
-- **Comportamiento OFF:** el `<h2 class="bunny-gallery-title">` directamente no se imprime — sin `display:none`, sin espacio vacío, cero nodos en el DOM
-- **Preview:** el editor reacciona al toggle de forma inmediata, igual que el frontend
-- **Por bloque:** SFW y NSFW comparten el mismo toggle dentro de cada bloque; no afecta otros bloques
-- Archivos modificados: `block.js`, `includes/class-plugin.php`
+- New: Background Fill Mode — `solid_color`, `corner_sample`, `dominant_color`
+- New: Corner Sample — averages a 4×4 px region at the chosen corner
+- New: Dominant Color — GD-only downsample to 50×50, grid sampling with step=2
+- New: Sample Corner selector (visible only when fill mode is `corner_sample`)
+- Dynamic show/hide of related settings in admin (vanilla JS inline)
 
--### 0.6.2 — 2026-06
-- **New:** Admin page `Image Settings` — consistent header and UI with other plugin pages.
-- **New (optional):** "Safe rename uploaded images" — rewrites uploaded image filenames to use the post slug + unique suffix to avoid collisions. Disabled by default.
-- **New (optional):** "Auto-fill ALT from post title" — sets attachment ALT to the parent post title plus " - BunnyChase" when adding attachments. Disabled by default.
-- **UX:** Image Settings UI follows the same `bunny-*` cards and header used by other pages.
--
-### 0.6.1 — 2025-06
-- **Nuevo:** Setting `Background Fill Mode` — reemplaza el color fijo con tres modos: `solid_color`, `corner_sample`, `dominant_color`
-- **Nuevo:** `corner_sample` — lee una región 4×4px del corner elegido (top_left / top_right / bottom_left / bottom_right / average_corners) y promedia el color resultante
-- **Nuevo:** `dominant_color` — reduce la imagen a un thumbnail 50×50 mediante `imagecopyresampled` y promedia todos los píxeles en un grid con step=2 (625 muestras); puro GD, sin clustering, sin librerías externas
-- **Nuevo:** Setting `Sample Corner` — visible únicamente cuando fill_mode es `corner_sample`; oculto en otros modos
-- **Mejora:** Setting `Background Color` ahora se muestra/oculta según fill_mode activo; solo visible en `solid_color`
-- **Mejora:** Show/hide dinámico en admin sin dependencias externas — JS vanilla inline, opera a nivel de `<tr>` completo
-- Compatibilidad completa con JPG, PNG, WebP, Smart Crop y Keep Original
+### 0.6.0
 
-### 0.6.0 — 2025-06
-- **Nuevo:** Sistema de normalización automática de imágenes al subir (`Image_Normalizer`)
-- **Nuevo:** Hook `wp_handle_upload` — la normalización ocurre antes de que WordPress genere thumbnails; todos los tamaños derivados salen normalizados
-- **Nuevo:** Setting `Enable Image Normalization` (OFF por defecto)
-- **Nuevo:** Setting `Ratio Mode` — Auto / 1:1 / 4:5 / 1.91:1
-- **Nuevo:** Setting `Processing Method` — Pad / Crop / Smart Crop
-- **Nuevo:** Setting `Background Color` — White / Black / Transparent
-- **Nuevo:** Setting `Ratio Tolerance` — 0.00–1.00; con 0 siempre normaliza
-- **Nuevo:** Setting `Keep Original` (ON por defecto) — guarda copia `photo_original.jpg` antes de normalizar
-- **Nuevo:** Página `Normalization` como submenú y pestaña del header Bunny Admin
-- **Nuevo:** `includes/class-image-normalizer.php` — GD puro, EXIF orientation, soporte JPG/PNG/WebP
+- New: Image Normalization system (`Image_Normalizer` class)
+- New: Hook on `wp_handle_upload` — normalization runs before WordPress generates thumbnails
+- New: Enable/disable toggle, ratio mode, processing method, background colour, tolerance, keep original settings
+- New: Normalization admin page as submenu and header tab
+- New: `includes/class-image-normalizer.php` — pure GD, EXIF orientation correction, JPEG/PNG/WebP support
 
-### 0.4.3 — Gutenberg fixes & columns UX
+### 0.5.0
 
-- **Fix:** eliminado `wp-editor` de las dependencias del editor script — causaba un `Notice` en `wp-admin/widgets.php` al ser incompatible con el nuevo editor de widgets (`wp-edit-widgets` / `wp-customize-widgets`); migrado correctamente a `wp-block-editor`
-- **Fix:** el bloque Gutenberg ahora puede seleccionarse correctamente haciendo clic en el área de preview — recuperado el outline azul de selección y la toolbar contextual; causa raíz: falta de integración con `useBlockProps` de la API v3
-- **Mejora:** default global de columnas cambiado de `3 → 5`
-- **Mejora:** máximo de columnas aumentado de `6 → 12` — actualizado en `RangeControl`, sanitización PHP y campo de settings
-- **Fix UX:** el control de columnas ya no aparece vacío en el inspector — se garantiza siempre un valor numérico válido con `parseInt(columns, 10) || D.columns`
+- New block: `bunny/content-section` — image + title + rich text, two-column responsive layout
+- Image position (left / right), configurable size, height and width ratio
+- RichText: paragraphs, lists, links, bold, italic
+- Lightbox integration: reuses gallery overlay system
 
-### 0.4.2 — Bunny Admin UI
+### 0.4.5
 
-- **Bunny Admin UI system:** adopted the shared `bunny-*` admin UI convention used across all Bunny plugins. The admin page now renders a consistent sticky header with the plugin logo, name, version badge, page subtitle, and tab navigation bar.
-- **New `assets/css/bunny-admin.css`:** plugin-agnostic stylesheet — sticky header, tab nav, version badge, page-content wrapper, responsive breakpoints. Loaded as a WordPress style dependency before `admin.css`.
-- **New `assets/css/admin.css`:** plugin-specific admin styles (settings form headings, section borders, field radii). `--bsg-*` variables alias the shared `--bunny-*` tokens.
-- **New `includes/admin/class-admin-header.php`:** `BunnyNSFW\Admin_Header` — mirrors the pattern from QPS and WPAM. Renders header + nav from a `$tabs` array; active tab detected by slug argument. Ready for future tabs without touching page templates.
-- **New `includes/admin/class-admin-assets.php`:** `BunnyNSFW\Admin_Assets` — enqueues `bunny-admin.css` and `admin.css` scoped to plugin screens only.
-- **`bunny_gallery_settings_page()`:** replaced inline `<h1>` and bare `<div class="wrap">` with `bunny-wrap`, `Admin_Header::render()`, and `bunny-page-content`. No logic, fields, sections, or sanitization changed.
-- **No functional changes:** all block registration, render callbacks, Settings API fields, sanitization, frontend scripts, and cookie logic untouched.
+- Fix: `RangeControl` for blur intensity appeared empty on block open when attribute was not serialized
 
-### 0.4.1 — 2025-05
-- **Fix:** `show_lightbox_thumbnails = false` no desactivaba el thumbnails rail — el carrusel seguía apareciendo
-- **Fix (PHP):** `wp_localize_script` serializa `bool` como string vacío `""` al pasar `false`; ahora se emite `'1'` / `'0'` de forma explícita
-- **Fix (JS):** La condición `!== false` no atrapaba el string vacío; reemplazada por comparación estricta `=== '1'`
-- **Mejora:** El elemento `thumbsEl` ya no se crea ni se monta en el DOM cuando el setting está desactivado — cero nodos, cero listeners, cero espacio reservado
-- **Mejora:** `data-thumbs` en el overlay refleja el estado real → el CSS no reserva el espacio inferior de 110px innecesariamente
+### 0.4.4
 
-### 0.4.0 — 2025-05
-- **Nuevo:** Rediseño completo del lightbox UI — estilo moderno premium (inspirado en Patreon / Pixiv / iOS Photos)
-- **Nuevo:** Botones prev/next/close reemplazados por icon buttons SVG con `backdrop-filter: blur`, border sutil y border-radius rectangular
-- **Nuevo:** Layout 100% `position: fixed` — botones estables, no se mueven con el tamaño de imagen
-- **Nuevo:** Counter convertido a pill UI con número actual en accent color
-- **Nuevo:** Animación fade-in al abrir el lightbox; fade de opacidad al cambiar imagen
-- **Nuevo:** Setting global `lightbox_theme` — `dark` / `light` / `auto` (respeta `prefers-color-scheme`)
-- **Nuevo:** Setting global `lightbox_accent_color` — color picker, aplicado a thumbnail activo, counter y focus states
-- **Nuevo:** Setting global `show_lightbox_thumbnails` — carrusel horizontal inferior de miniaturas (thumbnail WP, solo galería actual)
-- **Nuevo:** Setting global `lightbox_caption_fields` — campos configurables: `alt`, `title`, `caption`, `description`
-- **Nuevo:** Setting global `lightbox_caption_mode` — `hidden` / `minimal` / `full`
-- **Nuevo:** `data-thumb`, `data-title`, `data-caption`, `data-description` emitidos por `render_callback`
-- **Nuevo:** CSS variables completas en `.bunny-lightbox-overlay` (`--blb-bg`, `--blb-surface`, `--blb-accent`, etc.)
-- **Fix:** Hover de botones prev/next eliminaba `transform: translateY(-50%)` causando salto del cursor; reemplazado por hover puramente visual (background + border + box-shadow)
+- New: `showTitle` boolean attribute per block — conditionally removes the `<h2>` title from the DOM entirely
 
-### 0.3.1 — 2025-05
-- **Nuevo:** Setting `nsfw_display_style`: `minimal` / `overlay` / `hidden`
-- **Nuevo:** Modo `minimal` — blur + badge flotante + modal elegante (sin overlay oscuro)
-- **Nuevo:** Modal NSFW con backdrop, botón confirmar/cancelar, cierre por ESC y backdrop click
-- **Nuevo:** Modo `hidden` — capa sólida oscura + blur fuerte
-- **Nuevo:** Setting `unlock_button_text` — texto del botón configurable globalmente
-- **Nuevo:** Botón `🔒 Volver a bloquear contenido NSFW` — visible solo con cookie activa, re-bloquea sin reload
-- **Fix:** El blur vive solo en las imágenes; el overlay/modal no destruye visualmente el efecto
-- **Mejora:** `data-display-style` y `data-unlock-text` emitidos por el render_callback PHP
-- **Mejora:** `deleteCookie()` helper para borrar la cookie de consentimiento
+### 0.4.3
 
-### 0.3.0 — 2025-05
-- **Nuevo:** Títulos de galería (SFW / NSFW) con override por bloque
-- **Nuevo:** Selector de tamaño de imagen (thumbnail / medium / large / full)
-- **Nuevo:** Selector de aspect ratio (square / portrait / landscape / original)
-- **Nuevo:** Blur intensity con slider 0–20px y preview visual en settings
-- **Nuevo:** Menú propio `Bunny Gallery` en el sidebar de WordPress Admin
-- **Fix:** Botones prev/next del lightbox son `position:fixed` — ya no se mueven con la imagen
-- **Mejora:** Fade de imagen en lightbox, counter con pill, `body.bunny-lightbox-open`
+- Fix: removed `wp-editor` from editor script dependencies (caused a Notice on widgets screen)
+- Fix: block can now be selected correctly in the editor — restored `useBlockProps` integration
+- Improvement: default columns changed from 3 to 5; maximum columns increased from 6 to 12
 
-### 0.2.0 — 2025-05
-- **Nuevo:** Sistema de settings globales (Options API)
-- **Nuevo:** Lightbox nativo aislado por instancia (`BunnyLightbox`)
-- **Mejora:** `render_callback` con `data-gallery-id` único, `wp_localize_script`
+### 0.4.2
 
-### 0.0.1 — inicial
-- Bloque Gutenberg dinámico SFW/NSFW
-- Sistema de blur y overlay por cookie
-- Desbloqueo en cascada entre galerías
+- New: Bunny Admin UI system — shared sticky header, tab navigation, version badge
+- New: `class-admin-header.php`, `class-admin-assets.php`, `bunny-admin.css`, `admin.css`
 
----
+### 0.4.1
 
-## Roadmap
+- Fix: `show_lightbox_thumbnails = false` did not hide the thumbnail rail
+- Fix: `wp_localize_script` boolean serialization — now emits explicit `'1'` / `'0'`
 
-- [ ] Roles de usuario (desbloqueo por rol, sin cookie)
-- [ ] Login NSFW propio
-- [ ] Gap y border-radius configurables en settings
-- [ ] Shortcode equivalente al bloque
-- [ ] Lazy loading en lightbox para galerías grandes
+### 0.4.0
+
+- New: Complete lightbox redesign — modern premium UI
+- New: Lightbox theme (`dark` / `light` / `auto`), accent colour, thumbnail rail, caption fields and mode
+- New: SVG icon buttons, fade transitions, touch swipe, keyboard navigation, counter pill
+
+### 0.3.1
+
+- New: NSFW display style setting (`minimal` / `overlay` / `hidden`)
+- New: Minimal mode — blur + floating badge + elegant modal
+- New: Re-lock button (visible only when consent cookie exists)
+- New: Configurable unlock button text
+
+### 0.3.0
+
+- New: Gallery titles (SFW / NSFW) with per-block override
+- New: Image size selector and aspect ratio selector
+- New: Blur intensity slider (0–20 px) with live preview in settings
+- New: Bunny Gallery admin menu
+
+### 0.2.0
+
+- New: Global settings system (Options API)
+- New: Native per-instance lightbox (`BunnyLightbox`)
+
+### 0.0.1
+
+- Initial release: Gutenberg SFW/NSFW block, blur and overlay system, cookie-based cascading unlock

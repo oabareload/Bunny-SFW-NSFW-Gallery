@@ -411,7 +411,9 @@
                     onSelect: function ( media ) {
                         var ids  = media.map( function ( i ) { return i.id; } );
                         var data = media.map( function ( i ) {
-                            return { id: i.id, url: i.url, alt: i.alt || '' };
+                            var url = ( i.sizes && i.sizes[ imageSize ] && i.sizes[ imageSize ].url )
+                                      || i.url;
+                            return { id: i.id, url: url, alt: i.alt || '' };
                         } );
                         set( { images: ids, imageData: data } );
                         setResolved( data );

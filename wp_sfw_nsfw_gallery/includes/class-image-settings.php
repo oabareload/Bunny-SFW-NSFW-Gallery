@@ -71,8 +71,15 @@ class Image_Settings {
                     return $file;
                 }
 
-                $editor->resize( $max_w, $max_h, false );
-                $editor->save( $file['file'] );
+                $resized = $editor->resize( $max_w, $max_h, false );
+                if ( is_wp_error( $resized ) ) {
+                    return $file;
+                }
+
+                $saved = $editor->save( $file['file'] );
+                if ( is_wp_error( $saved ) ) {
+                    return $file;
+                }
 
                 return $file;
             }, 20, 1 );
@@ -114,10 +121,10 @@ class Image_Settings {
                     return $file;
                 }
 
-                $post_id = $_POST['post_id'] ?? $_REQUEST['post_id'] ?? 0;
+                $post_id = absint( $_POST['post_id'] ?? $_REQUEST['post_id'] ?? 0 );
 
                 if ( ! $post_id && isset( $GLOBALS['post']->ID ) ) {
-                    $post_id = $GLOBALS['post']->ID;
+                    $post_id = absint( $GLOBALS['post']->ID );
                 }
 
                 if ( ! $post_id ) {
@@ -151,10 +158,10 @@ class Image_Settings {
         // ------------------------------------------------------------------
         if ( ! empty( $opts['auto_alt_enabled'] ) ) {
             add_action( 'add_attachment', static function ( $attachment_id ) {
-                $post_id = $_POST['post_id'] ?? $_REQUEST['post_id'] ?? 0;
+                $post_id = absint( $_POST['post_id'] ?? $_REQUEST['post_id'] ?? 0 );
 
                 if ( ! $post_id && ! empty( $GLOBALS['post']->ID ) ) {
-                    $post_id = $GLOBALS['post']->ID;
+                    $post_id = absint( $GLOBALS['post']->ID );
                 }
 
                 if ( ! $post_id ) return;
