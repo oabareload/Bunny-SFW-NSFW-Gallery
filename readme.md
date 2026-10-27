@@ -233,6 +233,6 @@ hardcoded fallback (bunny_gallery_hardcoded_defaults())
 - **Attributes:** `path=/; SameSite=Lax`.
 - **Purpose:** Set when the user confirms age on any NSFW gallery. When present, all NSFW galleries on the page unlock in cascade.
 - **Configurable Name:** The cookie name can be customized via **Bunny Gallery → Settings → Protección NSFW**. Only RFC 6265 alphanumeric, hyphen, and underscore characters are permitted. Invalid or empty values safely fallback to `bunny_nsfw_age`.
-- **Disable Protection:** The entire gallery age-gate protection system can be disabled in settings. When disabled, images are displayed immediately without age confirmation, without blur, and without unnecessary cookie operations.
+- **Disable Protection:** The entire gallery age-gate protection system can be disabled in settings. When disabled, images are displayed immediately without age confirmation, without blur, without floating badges/overlays, and without unnecessary cookie operations. Existing installations without this setting in the database preserve protection enabled by default.
 - **WP Consent API:** Registered as `functional` when WordPress Consent API is available, dynamically using the configured cookie name.
 - **Re-lock Button:** The **"🔒 Volver a bloquear contenido NSFW"** button appears only when the cookie exists and protection is enabled.

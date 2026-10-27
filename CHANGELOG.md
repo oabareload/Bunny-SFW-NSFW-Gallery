@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1 — 2026-10-27
+
+- Fixed an issue where the floating NSFW badge, reset button, and click interception modal could still initialize when NSFW protection was disabled in settings.
+- Fixed global helper resolution in namespaced plugin code (`function_exists` call format).
+- Added dual-channel protection status verification in the frontend JavaScript engine (`data-nsfw-enabled` DOM attribute inspection with global config fallback).
+- Guaranteed full backward compatibility for existing installations without the `nsfw_enabled` option key in the database (defaults to enabled).
+- Bumped the plugin version to `1.2.1`.
+
 ## 1.2.0 — 2026-10-27
 
 - Added an admin setting to toggle the NSFW protection system on or off.

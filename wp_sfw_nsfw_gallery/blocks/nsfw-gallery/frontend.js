@@ -686,17 +686,33 @@
         btn.addEventListener( 'click', unlockAllNSFW );
     }
 
+    function isNSFWProtectionEnabled( wrapper ) {
+        if ( wrapper ) {
+            var attr = wrapper.getAttribute( 'data-nsfw-enabled' );
+            if ( attr === '0' || attr === 'false' ) return false;
+            if ( attr === '1' || attr === 'true' ) return true;
+        }
+        if ( typeof CFG.nsfw_enabled !== 'undefined' ) {
+            return CFG.nsfw_enabled !== '0' && CFG.nsfw_enabled !== false;
+        }
+        return true;
+    }
+
     /* ══════════════════════════════════════════════════════════════════════════
      *  DISPATCH según display style
      * ══════════════════════════════════════════════════════════════════════════ */
 
     function initNSFW( wrapper ) {
-        if ( ! NSFW_ENABLED || wrapper.dataset.nsfwEnabled === '0' ) {
+        if ( ! isNSFWProtectionEnabled( wrapper ) ) {
             wrapper.classList.remove( CLASS_LOCKED );
+            var badge = wrapper.querySelector( '.bunny-nsfw-badge' );
+            if ( badge && badge.parentNode ) badge.parentNode.removeChild( badge );
+            var overlay = wrapper.querySelector( '.bunny-nsfw-overlay' );
+            if ( overlay && overlay.parentNode ) overlay.parentNode.removeChild( overlay );
             return;
         }
 
-        var mode = ( wrapper.dataset.mode || 'sfw' ).toLowerCase();
+        var mode = ( wrapper.dataset.mode || wrapper.getAttribute( 'data-mode' ) || 'sfw' ).toLowerCase();
         if ( mode !== 'nsfw' ) return;
 
         if ( getCookie( COOKIE_NAME ) === COOKIE_VALUE ) {
@@ -704,7 +720,7 @@
             return;
         }
 
-        var style = wrapper.dataset.displayStyle || 'minimal';
+        var style = wrapper.dataset.displayStyle || wrapper.getAttribute( 'data-display-style' ) || 'minimal';
 
         if ( style === 'minimal' ) {
             initMinimal( wrapper );
@@ -719,7 +735,7 @@
      *  BOTÓN DE RESET / RE-BLOQUEO
      *
      *  Se inyecta una vez en el DOM (después de la última galería NSFW).
-     *  Solo visible cuando la cookie existe.
+     *  Solo visible cuando la cookie existe y la protección está activa.
      *  Al hacer clic borra la cookie y re-bloquea todo sin recargar.
      * ══════════════════════════════════════════════════════════════════════════ */
 
@@ -736,9 +752,10 @@
         resetBtn.addEventListener( 'click', function () {
             deleteCookie( COOKIE_NAME );
 
-            // Re-bloquear todas las galerías NSFW
+            // Re-bloquear solo las galerías NSFW que tengan la protección activada
             document.querySelectorAll( '.bunny-gallery-wrapper[data-mode="nsfw"]' ).forEach( function ( wrapper ) {
-                var style = wrapper.dataset.displayStyle || 'minimal';
+                if ( ! isNSFWProtectionEnabled( wrapper ) ) return;
+                var style = wrapper.dataset.displayStyle || wrapper.getAttribute( 'data-display-style' ) || 'minimal';
                 if ( style === 'minimal' ) {
                     initMinimal( wrapper );
                 } else if ( style === 'hidden' ) {
@@ -762,10 +779,14 @@
     }
 
     function updateResetButton() {
-        if ( ! NSFW_ENABLED ) {
+        var activeNSFWGalleries = Array.from( document.querySelectorAll( '.bunny-gallery-wrapper[data-mode="nsfw"]' ) )
+            .filter( function ( w ) { return isNSFWProtectionEnabled( w ); } );
+
+        if ( activeNSFWGalleries.length === 0 ) {
             if ( resetBtn ) resetBtn.setAttribute( 'hidden', '' );
             return;
         }
+
         var hasConsent = getCookie( COOKIE_NAME ) === COOKIE_VALUE;
         if ( hasConsent ) {
             buildResetButton();
@@ -780,17 +801,24 @@
      * ══════════════════════════════════════════════════════════════════════════ */
 
     function init() {
-        var hasNSFW = false;
+        var hasActiveNSFW = false;
 
         document.querySelectorAll( '.bunny-gallery-wrapper' ).forEach( function ( wrapper ) {
-            if ( wrapper.dataset.mode === 'nsfw' ) hasNSFW = true;
+            var mode = ( wrapper.dataset.mode || wrapper.getAttribute( 'data-mode' ) || 'sfw' ).toLowerCase();
+            if ( mode === 'nsfw' && isNSFWProtectionEnabled( wrapper ) ) {
+                hasActiveNSFW = true;
+            }
             initNSFW( wrapper );
-            if ( wrapper.dataset.link === 'lightbox' ) {
+            if ( ( wrapper.dataset.link || wrapper.getAttribute( 'data-link' ) ) === 'lightbox' ) {
                 new BunnyLightbox( wrapper );
             }
         } );
 
-        if ( NSFW_ENABLED && hasNSFW ) updateResetButton();
+        if ( hasActiveNSFW ) {
+            updateResetButton();
+        } else {
+            if ( resetBtn ) resetBtn.setAttribute( 'hidden', '' );
+        }
     }
 
     document.readyState === 'loading'

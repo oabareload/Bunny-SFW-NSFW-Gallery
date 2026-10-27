@@ -75,10 +75,10 @@ class Plugin {
         // Nota: wp_localize_script serializa booleanos como "" / "1".
         // Usamos strings explícitos que el JS puede comparar sin ambigüedad.
         $d            = bunny_gallery_get_effective_defaults();
-        $cookie_name  = function_exists( '\bunny_nsfw_get_configured_cookie_name' )
+        $cookie_name  = function_exists( 'bunny_nsfw_get_configured_cookie_name' )
             ? \bunny_nsfw_get_configured_cookie_name()
             : 'bunny_nsfw_age';
-        $nsfw_enabled = function_exists( '\bunny_nsfw_is_protection_enabled' )
+        $nsfw_enabled = function_exists( 'bunny_nsfw_is_protection_enabled' )
             ? \bunny_nsfw_is_protection_enabled()
             : true;
 
@@ -158,7 +158,7 @@ class Plugin {
 
         $nsfw_display_style = \bunny_get_setting( null, 'nsfw_display_style' ); // solo global
         $unlock_button_text = \bunny_get_setting( null, 'unlock_button_text' ); // solo global
-        $nsfw_enabled       = function_exists( '\bunny_nsfw_is_protection_enabled' )
+        $nsfw_enabled       = function_exists( 'bunny_nsfw_is_protection_enabled' )
                                 ? \bunny_nsfw_is_protection_enabled() : true;
 
         $columns        = max( 1, min( 12, (int) $columns ) );

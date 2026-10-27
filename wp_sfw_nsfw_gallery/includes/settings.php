@@ -44,17 +44,26 @@ function bunny_gallery_hardcoded_defaults(): array {
 }
 
 function bunny_nsfw_is_protection_enabled(): bool {
-    $defaults = bunny_gallery_get_effective_defaults();
+    $saved = get_option( BUNNY_GALLERY_OPTION, [] );
+    if ( is_array( $saved ) && array_key_exists( 'nsfw_enabled', $saved ) ) {
+        return ! empty( $saved['nsfw_enabled'] );
+    }
+    // Para instalaciones existentes sin la clave guardada, activado por defecto
+    $defaults = bunny_gallery_hardcoded_defaults();
     return ! empty( $defaults['nsfw_enabled'] );
 }
 
 function bunny_nsfw_get_configured_cookie_name(): string {
-    $defaults = bunny_gallery_get_effective_defaults();
-    $name     = $defaults['nsfw_cookie_name'] ?? 'bunny_nsfw_age';
-    if ( ! is_string( $name ) || $name === '' || ! preg_match( '/^[a-zA-Z0-9_\-]+$/', $name ) ) {
-        return 'bunny_nsfw_age';
+    $saved = get_option( BUNNY_GALLERY_OPTION, [] );
+    $name  = is_array( $saved ) ? ( $saved['nsfw_cookie_name'] ?? null ) : null;
+    if ( is_string( $name ) ) {
+        $name = trim( $name );
+        if ( $name !== '' && preg_match( '/^[a-zA-Z0-9_\-]+$/', $name ) ) {
+            return $name;
+        }
     }
-    return $name;
+    $defaults = bunny_gallery_hardcoded_defaults();
+    return $defaults['nsfw_cookie_name'] ?? 'bunny_nsfw_age';
 }
 
 // -----------------------------------------------------------------------------
@@ -66,7 +75,7 @@ function bunny_get_setting( $block_value, string $key ) {
         return $block_value;
     }
     $saved = get_option( BUNNY_GALLERY_OPTION, [] );
-    if ( array_key_exists( $key, $saved ) && $saved[ $key ] !== '' ) {
+    if ( is_array( $saved ) && array_key_exists( $key, $saved ) && $saved[ $key ] !== '' ) {
         return $saved[ $key ];
     }
     $defaults = bunny_gallery_hardcoded_defaults();
@@ -74,9 +83,13 @@ function bunny_get_setting( $block_value, string $key ) {
 }
 
 function bunny_gallery_get_effective_defaults(): array {
-    $saved    = get_option( BUNNY_GALLERY_OPTION, [] );
-    $fallback = bunny_gallery_hardcoded_defaults();
-    return array_merge( $fallback, array_filter( $saved, fn( $v ) => $v !== '' && ! is_null( $v ) ) );
+    $saved     = get_option( BUNNY_GALLERY_OPTION, [] );
+    $fallback  = bunny_gallery_hardcoded_defaults();
+    $effective = array_merge( $fallback, array_filter( $saved, fn( $v ) => $v !== '' && ! is_null( $v ) ) );
+    if ( is_array( $saved ) && array_key_exists( 'nsfw_enabled', $saved ) ) {
+        $effective['nsfw_enabled'] = ! empty( $saved['nsfw_enabled'] );
+    }
+    return $effective;
 }
 
 // -----------------------------------------------------------------------------
