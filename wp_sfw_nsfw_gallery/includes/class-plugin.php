@@ -43,6 +43,17 @@ class Plugin {
     }
 
     private function register_assets(): void {
+        // Módulo compartido de zoom/pan del lightbox (sin dependencias, reutilizado
+        // por ambos bloques; se carga siempre que cualquiera de los dos frontend
+        // scripts se encole, exista o no una Gallery en la página).
+        wp_register_script(
+            'bunny-lightbox-zoom',
+            BUNNY_NSWF_PLUGIN_URL . 'blocks/shared/lightbox-zoom.js',
+            [],
+            BUNNY_NSWF_VERSION,
+            true
+        );
+
         wp_register_script(
             'bunny-nsfw-block-editor',
             BUNNY_NSWF_PLUGIN_URL . 'blocks/nsfw-gallery/block.js',
@@ -55,22 +66,34 @@ class Plugin {
         wp_register_script(
             'bunny-nsfw-block-frontend',
             BUNNY_NSWF_PLUGIN_URL . 'blocks/nsfw-gallery/frontend.js',
-            [],
+            [ 'bunny-lightbox-zoom' ],
             BUNNY_NSWF_VERSION,
             true
         );
 
-        // Exponer settings del lightbox al frontend JS
+        // Exponer settings de lightbox y NSFW al frontend JS
         // Nota: wp_localize_script serializa booleanos como "" / "1".
         // Usamos strings explícitos que el JS puede comparar sin ambigüedad.
-        $d = bunny_gallery_get_effective_defaults();
-        wp_localize_script( 'bunny-nsfw-block-frontend', 'bunnyGalleryLightbox', [
+        $d            = bunny_gallery_get_effective_defaults();
+        $cookie_name  = function_exists( '\bunny_nsfw_get_configured_cookie_name' )
+            ? \bunny_nsfw_get_configured_cookie_name()
+            : 'bunny_nsfw_age';
+        $nsfw_enabled = function_exists( '\bunny_nsfw_is_protection_enabled' )
+            ? \bunny_nsfw_is_protection_enabled()
+            : true;
+
+        $frontend_config = [
+            'nsfw_enabled'             => $nsfw_enabled ? '1' : '0',
+            'cookie_name'              => $cookie_name,
             'show_lightbox_thumbnails' => $d['show_lightbox_thumbnails'] ? '1' : '0',
             'lightbox_theme'           => $d['lightbox_theme'],
             'lightbox_accent_color'    => $d['lightbox_accent_color'],
             'lightbox_caption_fields'  => (array) $d['lightbox_caption_fields'],
             'lightbox_caption_mode'    => $d['lightbox_caption_mode'],
-        ] );
+        ];
+
+        wp_localize_script( 'bunny-nsfw-block-frontend', 'bunnyGalleryConfig', $frontend_config );
+        wp_localize_script( 'bunny-nsfw-block-frontend', 'bunnyGalleryLightbox', $frontend_config );
         wp_register_style(
             'bunny-nsfw-block-style',
             BUNNY_NSWF_PLUGIN_URL . 'blocks/nsfw-gallery/style.css',
@@ -89,14 +112,14 @@ class Plugin {
         wp_register_script(
             'bunny-content-section-frontend',
             BUNNY_NSWF_PLUGIN_URL . 'blocks/content-section/frontend.js',
-            [],
+            [ 'bunny-lightbox-zoom' ],
             BUNNY_NSWF_VERSION,
             true
         );
         wp_register_style(
             'bunny-content-section-style',
             BUNNY_NSWF_PLUGIN_URL . 'blocks/content-section/style.css',
-            [],
+            [ 'bunny-nsfw-block-style' ],
             BUNNY_NSWF_VERSION
         );
     }
@@ -119,14 +142,28 @@ class Plugin {
         $sfw_title          = \bunny_get_setting( $attributes['sfwTitle']     ?? null, 'sfw_title' );
         $nsfw_title         = \bunny_get_setting( $attributes['nsfwTitle']    ?? null, 'nsfw_title' );
         $show_title         = $attributes['showTitle'] ?? true;
+        $custom_title       = isset( $attributes['customTitle'] ) && $attributes['customTitle'] !== ''
+                                ? $attributes['customTitle'] : null;
+
+        // Title resolution: customTitle → legacy sfwTitle/nsfwTitle → global sfw_title/nsfw_title
+        if ( $custom_title !== null ) {
+            $title = $custom_title;
+        } elseif ( $mode === 'nsfw' && ! empty( $nsfw_title ) ) {
+            $title = $nsfw_title;
+        } elseif ( $mode === 'sfw' && ! empty( $sfw_title ) ) {
+            $title = $sfw_title;
+        } else {
+            $title = '';
+        }
+
         $nsfw_display_style = \bunny_get_setting( null, 'nsfw_display_style' ); // solo global
         $unlock_button_text = \bunny_get_setting( null, 'unlock_button_text' ); // solo global
+        $nsfw_enabled       = function_exists( '\bunny_nsfw_is_protection_enabled' )
+                                ? \bunny_nsfw_is_protection_enabled() : true;
 
         $columns        = max( 1, min( 12, (int) $columns ) );
         $blur_intensity = max( 0, min( 20, (int) $blur_intensity ) );
         $target         = $target_blank ? '_blank' : '_self';
-        $title          = $mode === 'nsfw' ? $nsfw_title : $sfw_title;
-
         $ratio_map = [ 'square' => '1 / 1', 'portrait' => '2 / 3', 'landscape' => '16 / 9', 'original' => 'auto' ];
         $css_ratio = $ratio_map[ $aspect_ratio ] ?? '1 / 1';
 
@@ -135,7 +172,8 @@ class Plugin {
             class="bunny-gallery-wrapper"
             data-gallery-id="<?php echo esc_attr( $gallery_id ); ?>"
             data-mode="<?php echo esc_attr( $mode ); ?>"
-            data-blur="<?php echo $blur ? '1' : '0'; ?>"
+            data-nsfw-enabled="<?php echo $nsfw_enabled ? '1' : '0'; ?>"
+            data-blur="<?php echo ( $blur && ( $mode !== 'nsfw' || $nsfw_enabled ) ) ? '1' : '0'; ?>"
             data-link="<?php echo esc_attr( $link_behavior ); ?>"
             data-message="<?php echo esc_attr( $nsfw_message ); ?>"
             data-display-style="<?php echo esc_attr( $nsfw_display_style ); ?>"

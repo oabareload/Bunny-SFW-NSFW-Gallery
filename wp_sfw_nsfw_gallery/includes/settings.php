@@ -37,7 +37,24 @@ function bunny_gallery_hardcoded_defaults(): array {
         'lightbox_accent_color'    => '#7c6aff',
         'lightbox_caption_fields'  => [],       // array: alt|title|caption|description
         'lightbox_caption_mode'    => 'minimal', // hidden | minimal | full
+        // NSFW Protection Control & Cookie Name
+        'nsfw_enabled'             => true,
+        'nsfw_cookie_name'         => 'bunny_nsfw_age',
     ];
+}
+
+function bunny_nsfw_is_protection_enabled(): bool {
+    $defaults = bunny_gallery_get_effective_defaults();
+    return ! empty( $defaults['nsfw_enabled'] );
+}
+
+function bunny_nsfw_get_configured_cookie_name(): string {
+    $defaults = bunny_gallery_get_effective_defaults();
+    $name     = $defaults['nsfw_cookie_name'] ?? 'bunny_nsfw_age';
+    if ( ! is_string( $name ) || $name === '' || ! preg_match( '/^[a-zA-Z0-9_\-]+$/', $name ) ) {
+        return 'bunny_nsfw_age';
+    }
+    return $name;
 }
 
 // -----------------------------------------------------------------------------
@@ -90,6 +107,8 @@ function bunny_gallery_register_settings(): void {
     add_settings_field( 'target_blank',  'Abrir en nueva pestaña',   'bunny_field_target_blank',  'bunny-gallery-settings', 'bunny_section_gallery' );
 
     // NSFW
+    add_settings_field( 'nsfw_enabled',       'Protección NSFW activada',    '__return_false',                 'bunny-gallery-settings', 'bunny_section_nsfw' );
+    add_settings_field( 'nsfw_cookie_name',   'Nombre de la cookie',         '__return_false',                 'bunny-gallery-settings', 'bunny_section_nsfw' );
     add_settings_field( 'nsfw_display_style', 'Estilo de protección NSFW', 'bunny_field_nsfw_display_style', 'bunny-gallery-settings', 'bunny_section_nsfw' );
     add_settings_field( 'blur',               'Blur NSFW activado',        'bunny_field_blur',               'bunny-gallery-settings', 'bunny_section_nsfw' );
     add_settings_field( 'blur_intensity',     'Intensidad del blur',       'bunny_field_blur_intensity',     'bunny-gallery-settings', 'bunny_section_nsfw' );
@@ -141,6 +160,18 @@ function bunny_gallery_sanitize_options( $input ): array {
     $allowed_styles              = [ 'minimal', 'overlay', 'hidden' ];
     $clean['nsfw_display_style'] = in_array( $input['nsfw_display_style'] ?? '', $allowed_styles, true )
                                    ? $input['nsfw_display_style'] : $d['nsfw_display_style'];
+
+    // NSFW Protection Toggle
+    $clean['nsfw_enabled'] = ! empty( $input['nsfw_enabled'] );
+
+    // Cookie Name: validación y saneamiento RFC 6265 token (alfanuméricos, guiones y guiones bajos).
+    // Si está vacío o contiene caracteres inválidos (espacios, comas, etc.), recurre al valor por defecto.
+    $raw_cookie_name = isset( $input['nsfw_cookie_name'] ) ? trim( (string) $input['nsfw_cookie_name'] ) : '';
+    if ( $raw_cookie_name !== '' && preg_match( '/^[a-zA-Z0-9_\-]+$/', $raw_cookie_name ) ) {
+        $clean['nsfw_cookie_name'] = $raw_cookie_name;
+    } else {
+        $clean['nsfw_cookie_name'] = $d['nsfw_cookie_name'];
+    }
 
     $clean['nsfw_message']       = sanitize_text_field( $input['nsfw_message']       ?? $d['nsfw_message'] );
     $clean['unlock_button_text'] = sanitize_text_field( $input['unlock_button_text'] ?? $d['unlock_button_text'] );
@@ -207,6 +238,8 @@ function bunny_gallery_settings_page(): void {
 	$target_blank  = ! empty( $opts['target_blank'] );
 	$image_size    = $opts['image_size']     ?? $d['image_size'];
 	$aspect_ratio  = $opts['aspect_ratio']   ?? $d['aspect_ratio'];
+	$nsfw_enabled  = ! empty( $opts['nsfw_enabled'] ) || ( ! isset( $opts['nsfw_enabled'] ) && $d['nsfw_enabled'] );
+	$cookie_name   = ! empty( $opts['nsfw_cookie_name'] ) ? $opts['nsfw_cookie_name'] : $d['nsfw_cookie_name'];
 	$nsfw_style    = $opts['nsfw_display_style'] ?? $d['nsfw_display_style'];
 	$nsfw_message  = $opts['nsfw_message']   ?? $d['nsfw_message'];
 	$unlock_text   = $opts['unlock_button_text'] ?? $d['unlock_button_text'];
@@ -320,6 +353,29 @@ function bunny_gallery_settings_page(): void {
 						<h2 class="bunny-card-title"><?php esc_html_e( 'Protección NSFW', 'bunny-sfw-nsfw-gallery' ); ?></h2>
 					</div>
 					<div class="bunny-card-body">
+
+						<div class="bunny-field-row bunny-field-row--check">
+							<div class="bunny-field-control">
+								<label class="bunny-field-check-wrap">
+									<input type="checkbox" name="<?php echo $opt; ?>[nsfw_enabled]" value="1"<?php checked( $nsfw_enabled ); ?>>
+									<span class="bunny-field-check-text">
+										<strong><?php esc_html_e( 'Activar protección NSFW', 'bunny-sfw-nsfw-gallery' ); ?></strong>
+										<span class="bunny-field-desc"><?php esc_html_e( 'Activa o desactiva la verificación de edad y el blur de protección de la galería. Si se desactiva, no se solicitará confirmación ni se aplicará el blur.', 'bunny-sfw-nsfw-gallery' ); ?></span>
+									</span>
+								</label>
+							</div>
+						</div>
+
+						<div class="bunny-field-row">
+							<div class="bunny-field-label"><?php esc_html_e( 'Nombre de la cookie', 'bunny-sfw-nsfw-gallery' ); ?></div>
+							<div class="bunny-field-control">
+								<input type="text" class="regular-text"
+								       name="<?php echo $opt; ?>[nsfw_cookie_name]"
+								       value="<?php echo esc_attr( $cookie_name ); ?>"
+								       placeholder="bunny_nsfw_age">
+								<p class="bunny-field-desc"><?php esc_html_e( 'Nombre de la cookie de verificación propia de la galería. Por defecto: bunny_nsfw_age. Solo permite letras, números, guiones y guiones bajos (sin espacios ni caracteres especiales).', 'bunny-sfw-nsfw-gallery' ); ?></p>
+							</div>
+						</div>
 
 						<div class="bunny-field-row">
 							<div class="bunny-field-label"><?php esc_html_e( 'Estilo de protección NSFW', 'bunny-sfw-nsfw-gallery' ); ?></div>

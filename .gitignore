@@ -4,6 +4,7 @@
 # Keep plugin files and README
 !.gitignore
 !readme.md
+!CHANGELOG.md
 !wp_sfw_nsfw_gallery/
 !wp_sfw_nsfw_gallery/**
 

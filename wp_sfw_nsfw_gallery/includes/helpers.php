@@ -7,5 +7,12 @@ function bunny_nsfw_get_cookie($name) {
 }
 
 function bunny_nsfw_is_unlocked() {
-    return isset($_COOKIE['bunny_nsfw_age']) && $_COOKIE['bunny_nsfw_age'] === '1';
+    if ( function_exists( 'bunny_nsfw_is_protection_enabled' ) && ! bunny_nsfw_is_protection_enabled() ) {
+        return true;
+    }
+    $cookie_name = function_exists( 'bunny_nsfw_get_configured_cookie_name' )
+        ? bunny_nsfw_get_configured_cookie_name()
+        : 'bunny_nsfw_age';
+
+    return isset( $_COOKIE[ $cookie_name ] ) && $_COOKIE[ $cookie_name ] === '1';
 }

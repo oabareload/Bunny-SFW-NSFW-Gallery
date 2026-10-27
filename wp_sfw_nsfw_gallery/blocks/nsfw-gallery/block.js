@@ -78,6 +78,7 @@
             sfwTitle:      { type: 'string',  default: D.sfw_title  || '' },
             nsfwTitle:     { type: 'string',  default: D.nsfw_title || '' },
             showTitle:     { type: 'boolean', default: true },
+            customTitle:   { type: 'string',  default: '' },
         },
 
         // ----------------------------------------------------------------------
@@ -102,6 +103,7 @@
             var sfwTitle      = attrs.sfwTitle;
             var nsfwTitle     = attrs.nsfwTitle;
             var showTitle     = attrs.showTitle !== false;
+            var customTitle   = attrs.customTitle || '';
 
             var rState        = useState( imageData || [] );
             var resolvedImages = rState[0];
@@ -158,7 +160,11 @@
 
             var cssRatio  = RATIO_MAP[ aspectRatio ] || '1 / 1';
             var isNsfw    = mode === 'nsfw';
-            var activeTitle = isNsfw ? nsfwTitle : sfwTitle;
+            // Title resolution: customTitle → legacy sfwTitle/nsfwTitle → global default (placeholder only)
+            var legacyTitle = isNsfw ? nsfwTitle : sfwTitle;
+            var activeTitle = customTitle || legacyTitle;
+            // Placeholder reflects the global default for the current mode
+            var titlePlaceholder = isNsfw ? ( D.nsfw_title || '' ) : ( D.sfw_title || '' );
 
             var gridStyle = {
                 display:             'grid',
@@ -385,17 +391,11 @@
                     el( PanelBody, { title: 'Títulos', initialOpen: false },
 
                         el( TextControl, {
-                            label:    'Título SFW',
-                            value:    sfwTitle,
-                            placeholder: D.sfw_title || 'Ej: Galería de imágenes',
-                            onChange: function ( v ) { set( { sfwTitle: v } ); },
-                        } ),
-
-                        el( TextControl, {
-                            label:    'Título NSFW',
-                            value:    nsfwTitle,
-                            placeholder: D.nsfw_title || 'Ej: Contenido para adultos',
-                            onChange: function ( v ) { set( { nsfwTitle: v } ); },
+                            label:       'Custom Title',
+                            value:       customTitle,
+                            placeholder: titlePlaceholder,
+                            onChange:    function ( v ) { set( { customTitle: v } ); },
+                            help:        'Dejar vacío para usar el título global configurado en Settings.',
                         } ),
 
                         el( ToggleControl, {

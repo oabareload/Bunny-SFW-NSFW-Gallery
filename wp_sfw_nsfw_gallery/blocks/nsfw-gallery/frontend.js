@@ -36,10 +36,14 @@
     }
 
     /* ══════════════════════════════════════════════════════════════════════════
-     *  CONSTANTES
+     *  CONFIGURACIÓN Y CONSTANTES
      * ══════════════════════════════════════════════════════════════════════════ */
 
-    var COOKIE_NAME   = 'bunny_nsfw_age';
+    var CFG           = window.bunnyGalleryConfig || window.bunnyGalleryLightbox || {};
+    var NSFW_ENABLED  = CFG.nsfw_enabled !== '0';
+    var COOKIE_NAME   = ( typeof CFG.cookie_name === 'string' && CFG.cookie_name.trim() !== '' )
+                        ? CFG.cookie_name.trim()
+                        : 'bunny_nsfw_age';
     var COOKIE_VALUE  = '1';
     var CLASS_LOCKED  = 'locked';
 
@@ -47,24 +51,27 @@
      *  LIGHTBOX v0.4.0 — rediseño completo premium
      * ══════════════════════════════════════════════════════════════════════════ */
 
-    // Leer settings globales inyectados por PHP (bunnyGalleryLightbox)
-    var LB_CFG = window.bunnyGalleryLightbox || {};
-    var LB_SHOW_THUMBS    = LB_CFG.show_lightbox_thumbnails === '1'; // '1' | '0' — wp_localize_script serializa bool como string
-    var LB_THEME          = LB_CFG.lightbox_theme            || 'dark'; // dark|light|auto
-    var LB_ACCENT         = LB_CFG.lightbox_accent_color     || '#7c6aff';
-    var LB_CAPTION_FIELDS = LB_CFG.lightbox_caption_fields   || [];     // ['title','alt','caption','description']
-    var LB_CAPTION_MODE   = LB_CFG.lightbox_caption_mode     || 'minimal'; // hidden|minimal|full
+    // Leer settings globales inyectados por PHP (bunnyGalleryConfig / bunnyGalleryLightbox)
+    var LB_SHOW_THUMBS    = CFG.show_lightbox_thumbnails === '1'; // '1' | '0' — wp_localize_script serializa bool como string
+    var LB_THEME          = CFG.lightbox_theme            || 'dark'; // dark|light|auto
+    var LB_ACCENT         = CFG.lightbox_accent_color     || '#7c6aff';
+    var LB_CAPTION_FIELDS = CFG.lightbox_caption_fields   || [];     // ['title','alt','caption','description']
+    var LB_CAPTION_MODE   = CFG.lightbox_caption_mode     || 'minimal'; // hidden|minimal|full
 
     // SVG icons inline
     var SVG_CLOSE = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     var SVG_PREV  = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polyline points="15 18 9 12 15 6"/></svg>';
     var SVG_NEXT  = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polyline points="9 18 15 12 9 6"/></svg>';
+    var SVG_ZOOM_IN    = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>';
+    var SVG_ZOOM_OUT   = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>';
+    var SVG_ZOOM_RESET = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
 
     function BunnyLightbox( wrapper ) {
         this.wrapper   = wrapper;
         this.galleryId = wrapper.dataset.galleryId || '';
         this.current   = 0;
         this.overlay   = null;
+        this._zoom     = null; // instancia de BunnyLightboxZoom, creada al construir el overlay
         this.images    = Array.from( wrapper.querySelectorAll( '.bunny-gallery-item' ) ).map( function ( item ) {
             return {
                 src:         item.dataset.full        || '',
@@ -108,6 +115,9 @@
         var self  = this;
         var img   = this.images[ this.current ];
         var imgEl = this.overlay.querySelector( '.blb-img' );
+
+        // Resetear zoom/pan al cambiar de imagen (fit-to-screen siempre al entrar)
+        if ( this._zoom ) this._zoom.reset();
 
         // fade transition
         imgEl.style.opacity = '0';
@@ -194,15 +204,51 @@
     BunnyLightbox.prototype._updateThumbActive = function () {
         var self   = this;
         var thumbs = this.overlay ? this.overlay.querySelectorAll( '.blb-thumb' ) : [];
+        var activeThumb = null;
         thumbs.forEach( function ( t, i ) {
             if ( i === self.current ) {
                 t.classList.add( 'is-active' );
-                // scroll into view
-                t.scrollIntoView( { behavior: 'smooth', block: 'nearest', inline: 'center' } );
+                activeThumb = t;
             } else {
                 t.classList.remove( 'is-active' );
             }
         } );
+        if ( activeThumb ) this._scrollThumbIntoView( activeThumb );
+    };
+
+    // Desplazamiento horizontal explícito de .blb-thumbs hacia la miniatura activa.
+    // Reemplaza scrollIntoView({inline:'center'}), cuya heurística nativa no
+    // desplazaba correctamente hacia la izquierda en contenedores position:fixed
+    // con scrollWidth grande (galerías de decenas de imágenes).
+    BunnyLightbox.prototype._scrollThumbIntoView = function ( thumbEl ) {
+        var rail = this.overlay ? this.overlay.querySelector( '.blb-thumbs' ) : null;
+        if ( ! rail ) return;
+
+        var railLeft   = rail.scrollLeft;
+        var railWidth  = rail.clientWidth;
+        var railRight  = railLeft + railWidth;
+        var thumbLeft  = thumbEl.offsetLeft;
+        var thumbRight = thumbLeft + thumbEl.offsetWidth;
+
+        var target;
+        if ( thumbLeft < railLeft ) {
+            // La miniatura queda fuera por la izquierda del área visible.
+            target = thumbLeft;
+        } else if ( thumbRight > railRight ) {
+            // La miniatura queda fuera por la derecha del área visible.
+            target = thumbRight - railWidth;
+        } else {
+            return; // Ya completamente visible: no tocar el scroll.
+        }
+
+        var maxScroll = Math.max( 0, rail.scrollWidth - rail.clientWidth );
+        target = Math.min( maxScroll, Math.max( 0, target ) );
+
+        if ( rail.scrollTo ) {
+            rail.scrollTo( { left: target, behavior: 'smooth' } );
+        } else {
+            rail.scrollLeft = target;
+        }
     };
 
     BunnyLightbox.prototype._buildOverlay = function () {
@@ -257,6 +303,39 @@
         imgEl.src = ''; imgEl.alt = '';
         imgWrap.appendChild( imgEl );
 
+        // Zoom controls (+/-/reset) — solo se crean si el módulo compartido está disponible
+        var zoomControls = null;
+        if ( window.BunnyLightboxZoom ) {
+            zoomControls = document.createElement( 'div' );
+            zoomControls.className = 'blb-zoom-controls';
+
+            var btnZoomOut = document.createElement( 'button' );
+            btnZoomOut.className = 'blb-btn blb-zoom-out';
+            btnZoomOut.type = 'button';
+            btnZoomOut.setAttribute( 'aria-label', 'Alejar' );
+            btnZoomOut.innerHTML = SVG_ZOOM_OUT;
+
+            var btnZoomReset = document.createElement( 'button' );
+            btnZoomReset.className = 'blb-btn blb-zoom-reset';
+            btnZoomReset.type = 'button';
+            btnZoomReset.setAttribute( 'aria-label', 'Ajustar a pantalla' );
+            btnZoomReset.innerHTML = SVG_ZOOM_RESET;
+
+            var btnZoomIn = document.createElement( 'button' );
+            btnZoomIn.className = 'blb-btn blb-zoom-in';
+            btnZoomIn.type = 'button';
+            btnZoomIn.setAttribute( 'aria-label', 'Ampliar' );
+            btnZoomIn.innerHTML = SVG_ZOOM_IN;
+
+            zoomControls.appendChild( btnZoomOut );
+            zoomControls.appendChild( btnZoomReset );
+            zoomControls.appendChild( btnZoomIn );
+
+            btnZoomOut.addEventListener( 'click', function () { if ( self._zoom ) self._zoom.zoomOut(); } );
+            btnZoomReset.addEventListener( 'click', function () { if ( self._zoom ) self._zoom.reset(); } );
+            btnZoomIn.addEventListener( 'click', function () { if ( self._zoom ) self._zoom.zoomIn(); } );
+        }
+
         // Counter (pill)
         var counter = document.createElement( 'div' );
         counter.className = 'blb-counter';
@@ -278,6 +357,41 @@
         if ( LB_SHOW_THUMBS && this.images.length > 1 ) {
             var thumbsEl = document.createElement( 'div' );
             thumbsEl.className = 'blb-thumbs';
+
+            // Drag-to-scroll con mouse sobre la tira. Solo afecta scrollLeft de
+            // .blb-thumbs; no toca la imagen principal ni interfiere con BunnyLightboxZoom.
+            var thumbsDrag = { down: false, moved: false, startX: 0, scrollStart: 0 };
+            var THUMBS_DRAG_SLOP = 5;
+
+            thumbsEl.addEventListener( 'mousedown', function ( e ) {
+                thumbsDrag.down        = true;
+                thumbsDrag.moved       = false;
+                thumbsDrag.startX      = e.pageX;
+                thumbsDrag.scrollStart = thumbsEl.scrollLeft;
+            } );
+
+            thumbsEl.addEventListener( 'mousemove', function ( e ) {
+                if ( ! thumbsDrag.down ) return;
+                var dx = e.pageX - thumbsDrag.startX;
+                if ( Math.abs( dx ) > THUMBS_DRAG_SLOP ) thumbsDrag.moved = true;
+                if ( thumbsDrag.moved ) {
+                    e.preventDefault();
+                    thumbsEl.classList.add( 'is-dragging' );
+                    thumbsEl.scrollLeft = thumbsDrag.scrollStart - dx;
+                }
+            } );
+
+            function endThumbsDrag() {
+                thumbsDrag.down = false;
+                thumbsEl.classList.remove( 'is-dragging' );
+                // Si hubo drag, 'moved' se limpia tras el posible click que le sigue
+                // (mismo patrón que BunnyLightboxZoom), para no bloquear el siguiente
+                // click legítimo si el mouseup ocurre fuera de una miniatura.
+                if ( thumbsDrag.moved ) setTimeout( function () { thumbsDrag.moved = false; }, 0 );
+            }
+            thumbsEl.addEventListener( 'mouseup', endThumbsDrag );
+            thumbsEl.addEventListener( 'mouseleave', endThumbsDrag );
+
             this.images.forEach( function ( img, i ) {
                 var thumb = document.createElement( 'div' );
                 thumb.className = 'blb-thumb';
@@ -289,7 +403,10 @@
                 tImg.alt     = '';
                 tImg.loading = 'lazy';
                 thumb.appendChild( tImg );
-                thumb.addEventListener( 'click', function () { self.current = i; self._render(); } );
+                thumb.addEventListener( 'click', function () {
+                    if ( thumbsDrag.moved ) return; // click disparado justo tras un drag: ignorar
+                    self.current = i; self._render();
+                } );
                 thumb.addEventListener( 'keydown', function ( e ) {
                     if ( e.key === 'Enter' || e.key === ' ' ) { e.preventDefault(); self.current = i; self._render(); }
                 } );
@@ -306,11 +423,19 @@
         root.appendChild( imgWrap );
         root.appendChild( btnNext );
         root.appendChild( caption );
+        if ( zoomControls ) root.appendChild( zoomControls );
 
-        // Touch swipe
+        // Zoom/pan — reutiliza el módulo compartido, sin peticiones adicionales
+        // (la imagen ya cargada en .blb-img ES el original; solo se transforma con CSS).
+        if ( window.BunnyLightboxZoom ) {
+            this._zoom = window.BunnyLightboxZoom.create( imgWrap, imgEl );
+        }
+
+        // Touch swipe — se ignora mientras la imagen está ampliada (el pan táctil manda)
         var touchX = 0;
         root.addEventListener( 'touchstart', function ( e ) { touchX = e.changedTouches[ 0 ].screenX; }, { passive: true } );
         root.addEventListener( 'touchend',   function ( e ) {
+            if ( self._zoom && self._zoom.getScale() > 1 ) return;
             var d = e.changedTouches[ 0 ].screenX - touchX;
             if ( Math.abs( d ) > 50 ) { d < 0 ? self.next() : self.prev(); }
         }, { passive: true } );
@@ -566,6 +691,11 @@
      * ══════════════════════════════════════════════════════════════════════════ */
 
     function initNSFW( wrapper ) {
+        if ( ! NSFW_ENABLED || wrapper.dataset.nsfwEnabled === '0' ) {
+            wrapper.classList.remove( CLASS_LOCKED );
+            return;
+        }
+
         var mode = ( wrapper.dataset.mode || 'sfw' ).toLowerCase();
         if ( mode !== 'nsfw' ) return;
 
@@ -632,6 +762,10 @@
     }
 
     function updateResetButton() {
+        if ( ! NSFW_ENABLED ) {
+            if ( resetBtn ) resetBtn.setAttribute( 'hidden', '' );
+            return;
+        }
         var hasConsent = getCookie( COOKIE_NAME ) === COOKIE_VALUE;
         if ( hasConsent ) {
             buildResetButton();
@@ -656,7 +790,7 @@
             }
         } );
 
-        if ( hasNSFW ) updateResetButton();
+        if ( NSFW_ENABLED && hasNSFW ) updateResetButton();
     }
 
     document.readyState === 'loading'

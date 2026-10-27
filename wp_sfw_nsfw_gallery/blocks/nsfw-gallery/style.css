@@ -620,6 +620,18 @@ body.bunny-lightbox-open { overflow: hidden; }
     -ms-overflow-style: none;
     background:       linear-gradient( to top, var( --blb-bg ) 60%, transparent );
     scroll-behavior:  smooth;
+    cursor:           grab;
+}
+
+.blb-thumbs.is-dragging {
+    cursor:          grabbing;
+    scroll-behavior: auto; /* evitar que el smooth-scroll compita con el drag manual */
+}
+
+/* Durante el drag, toda la superficie del carrusel muestra grabbing,
+   incluidas las miniaturas (que normalmente tienen cursor: pointer). */
+.blb-thumbs.is-dragging .blb-thumb {
+    cursor: grabbing;
 }
 
 .blb-thumbs::-webkit-scrollbar { display: none; }
@@ -660,6 +672,57 @@ body.bunny-lightbox-open { overflow: hidden; }
     transform:    scale( 1.08 );
 }
 
+/* ── Zoom / Pan ───────────────────────────────────────────────────────── */
+
+/* mientras está ampliada, el wrap recorta el desbordamiento del pan */
+.blb-img-wrap.is-zoomed {
+    overflow: hidden;
+}
+
+.blb-zoom-controls {
+    position:        fixed;
+    bottom:          16px;
+    right:           16px;
+    z-index:         100003;
+    display:         flex;
+    align-items:     center;
+    gap:             6px;
+    padding:         4px;
+    background:      var( --blb-surface );
+    backdrop-filter: blur( 12px );
+    -webkit-backdrop-filter: blur( 12px );
+    border:          1px solid var( --blb-border );
+    border-radius:   999px;
+}
+
+.bunny-lightbox-overlay[data-thumbs="1"] .blb-zoom-controls {
+    bottom: 112px;
+}
+
+.blb-zoom-controls .blb-btn {
+    width:  36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.blb-zoom-controls .blb-btn:hover {
+    background: var( --blb-surface-hover );
+    box-shadow: none;
+}
+
+.blb-zoom-controls svg {
+    width:  18px;
+    height: 18px;
+    stroke: var( --blb-text );
+    fill:   none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 /* ── Mobile ────────────────────────────────────────────────────────────────── */
 
 @media ( max-width: 600px ) {
@@ -693,6 +756,20 @@ body.bunny-lightbox-open { overflow: hidden; }
 
     .bunny-lightbox-overlay[data-thumbs="1"] .blb-caption {
         bottom: 86px;
+    }
+
+    .blb-zoom-controls {
+        bottom: 8px;
+        right:  8px;
+    }
+
+    .bunny-lightbox-overlay[data-thumbs="1"] .blb-zoom-controls {
+        bottom: 88px;
+    }
+
+    .blb-zoom-controls .blb-btn {
+        width:  32px;
+        height: 32px;
     }
 }
  
