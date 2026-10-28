@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.2 — 2026-10-27
+
+- Fixed a root cause issue where secondary initializations or DOMContentLoaded events could trigger `initMinimal`, re-adding the `.locked` class and `bunny-nsfw-badge` after page load when NSFW protection was disabled in settings.
+- Added strict guards and idempotency flags across all protection lifecycle functions (`initMinimal`, `initOverlay`, `initHidden`, `openNSFWModal`).
+- Added click listener interception safeguards on `.bunny-gallery-item` so capture phase handlers immediately bail out when protection is disabled, ensuring smooth lightbox and link navigation.
+- Set `data-display-style` to `"disabled"` in PHP `render_block()` when `nsfw_enabled` is false, preventing misinterpretation by frontend dispatchers.
+- Injected synchronized inline configuration and explicit asset enqueuing in `render_block()` to ensure frontend scripts always receive the exact protection state.
+- Bumped the plugin version to `1.2.2`.
+
 ## 1.2.1 — 2026-10-27
 
 - Fixed an issue where the floating NSFW badge, reset button, and click interception modal could still initialize when NSFW protection was disabled in settings.

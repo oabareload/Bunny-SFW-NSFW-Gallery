@@ -156,10 +156,19 @@ class Plugin {
             $title = '';
         }
 
-        $nsfw_display_style = \bunny_get_setting( null, 'nsfw_display_style' ); // solo global
-        $unlock_button_text = \bunny_get_setting( null, 'unlock_button_text' ); // solo global
         $nsfw_enabled       = function_exists( 'bunny_nsfw_is_protection_enabled' )
                                 ? \bunny_nsfw_is_protection_enabled() : true;
+        $nsfw_display_style = $nsfw_enabled ? \bunny_get_setting( null, 'nsfw_display_style' ) : 'disabled';
+        $unlock_button_text = \bunny_get_setting( null, 'unlock_button_text' ); // solo global
+
+        // Asegurar que los assets de frontend estén explícitamente encolados y sincronizados
+        wp_enqueue_script( 'bunny-nsfw-block-frontend' );
+        wp_enqueue_style( 'bunny-nsfw-block-style' );
+        wp_add_inline_script(
+            'bunny-nsfw-block-frontend',
+            'window.bunnyGalleryConfig=window.bunnyGalleryConfig||{};window.bunnyGalleryConfig.nsfw_enabled="' . ( $nsfw_enabled ? '1' : '0' ) . '";',
+            'before'
+        );
 
         $columns        = max( 1, min( 12, (int) $columns ) );
         $blur_intensity = max( 0, min( 20, (int) $blur_intensity ) );

@@ -538,7 +538,11 @@
         } );
     }
 
-    function openNSFWModal( message, unlockText, onConfirm ) {
+    function openNSFWModal( message, unlockText, onConfirm, wrapper ) {
+        if ( ! isNSFWProtectionEnabled( wrapper ) ) {
+            if ( onConfirm ) onConfirm();
+            return;
+        }
         buildNSFWModal();
         nsfwModal.msg.textContent        = message   || 'Este contenido es solo para adultos.';
         nsfwModal.btnConfirm.textContent = unlockText || 'Ver contenido (+18)';
@@ -584,20 +588,39 @@
      * ══════════════════════════════════════════════════════════════════════════ */
 
     function initMinimal( wrapper ) {
+        if ( ! isNSFWProtectionEnabled( wrapper ) ) {
+            wrapper.classList.remove( CLASS_LOCKED );
+            var existingBadge = wrapper.querySelector( '.bunny-nsfw-badge' );
+            if ( existingBadge && existingBadge.parentNode ) existingBadge.parentNode.removeChild( existingBadge );
+            return;
+        }
+
+        if ( wrapper._bunnyMinimalInit ) {
+            return;
+        }
+        wrapper._bunnyMinimalInit = true;
+
         wrapper.classList.add( CLASS_LOCKED );
 
         var message     = wrapper.dataset.message    || 'Este contenido es solo para adultos.';
         var unlockText  = wrapper.dataset.unlockText || 'Ver contenido (+18)';
 
-        // Badge flotante
-        var badge = document.createElement( 'button' );
-        badge.className   = 'bunny-nsfw-badge';
-        badge.type        = 'button';
-        badge.innerHTML   = '🔒 <span>Contenido +18</span>';
-        wrapper.appendChild( badge );
+        // Badge flotante (solo si no existe ya)
+        var badge = wrapper.querySelector( '.bunny-nsfw-badge' );
+        if ( ! badge ) {
+            badge = document.createElement( 'button' );
+            badge.className   = 'bunny-nsfw-badge';
+            badge.type        = 'button';
+            badge.innerHTML   = '🔒 <span>Contenido +18</span>';
+            wrapper.appendChild( badge );
+        }
 
         function triggerModal() {
-            openNSFWModal( message, unlockText, unlockAllNSFW );
+            if ( ! isNSFWProtectionEnabled( wrapper ) ) {
+                wrapper.classList.remove( CLASS_LOCKED );
+                return;
+            }
+            openNSFWModal( message, unlockText, unlockAllNSFW, wrapper );
         }
 
         badge.addEventListener( 'click', function ( e ) {
@@ -605,9 +628,12 @@
             triggerModal();
         } );
 
-        // Click en cualquier imagen también abre el modal (no el lightbox)
+        // Click en cualquier imagen también abre el modal (no el lightbox) si está bloqueado y protegido
         wrapper.querySelectorAll( '.bunny-gallery-item' ).forEach( function ( item ) {
             item.addEventListener( 'click', function ( e ) {
+                if ( ! isNSFWProtectionEnabled( wrapper ) ) {
+                    return; // Protección inactiva: permitir lightbox o enlace normal sin interceptar
+                }
                 if ( wrapper.classList.contains( CLASS_LOCKED ) ) {
                     e.stopImmediatePropagation();
                     triggerModal();
@@ -621,6 +647,18 @@
      * ══════════════════════════════════════════════════════════════════════════ */
 
     function initOverlay( wrapper ) {
+        if ( ! isNSFWProtectionEnabled( wrapper ) ) {
+            wrapper.classList.remove( CLASS_LOCKED );
+            var existingOverlay = wrapper.querySelector( '.bunny-nsfw-overlay' );
+            if ( existingOverlay && existingOverlay.parentNode ) existingOverlay.parentNode.removeChild( existingOverlay );
+            return;
+        }
+
+        if ( wrapper._bunnyOverlayInit || wrapper.querySelector( '.bunny-nsfw-overlay' ) ) {
+            return;
+        }
+        wrapper._bunnyOverlayInit = true;
+
         wrapper.classList.add( CLASS_LOCKED );
 
         var message    = wrapper.dataset.message    || 'Este contenido es solo para adultos.';
@@ -656,6 +694,18 @@
      * ══════════════════════════════════════════════════════════════════════════ */
 
     function initHidden( wrapper ) {
+        if ( ! isNSFWProtectionEnabled( wrapper ) ) {
+            wrapper.classList.remove( CLASS_LOCKED );
+            var existingHidden = wrapper.querySelector( '.bunny-nsfw-overlay' );
+            if ( existingHidden && existingHidden.parentNode ) existingHidden.parentNode.removeChild( existingHidden );
+            return;
+        }
+
+        if ( wrapper._bunnyHiddenInit || wrapper.querySelector( '.bunny-nsfw-overlay' ) ) {
+            return;
+        }
+        wrapper._bunnyHiddenInit = true;
+
         wrapper.classList.add( CLASS_LOCKED );
 
         var message    = wrapper.dataset.message    || 'Este contenido es solo para adultos.';
@@ -687,14 +737,33 @@
     }
 
     function isNSFWProtectionEnabled( wrapper ) {
-        if ( wrapper ) {
+        // 1. Fuente primaria: atributo data-nsfw-enabled del wrapper específico
+        if ( wrapper && typeof wrapper.getAttribute === 'function' ) {
             var attr = wrapper.getAttribute( 'data-nsfw-enabled' );
             if ( attr === '0' || attr === 'false' ) return false;
             if ( attr === '1' || attr === 'true' ) return true;
+
+            if ( wrapper.dataset ) {
+                var ds = wrapper.dataset.nsfwEnabled;
+                if ( ds === '0' || ds === 'false' ) return false;
+                if ( ds === '1' || ds === 'true' ) return true;
+            }
+
+            var style = wrapper.getAttribute( 'data-display-style' ) || ( wrapper.dataset ? wrapper.dataset.displayStyle : '' );
+            if ( style === 'disabled' ) return false;
         }
-        if ( typeof CFG.nsfw_enabled !== 'undefined' ) {
-            return CFG.nsfw_enabled !== '0' && CFG.nsfw_enabled !== false;
+
+        // 2. Configuración global evaluada dinámicamente en tiempo de ejecución
+        var cfg = window.bunnyGalleryConfig || window.bunnyGalleryLightbox;
+        if ( cfg && typeof cfg.nsfw_enabled !== 'undefined' ) {
+            return cfg.nsfw_enabled !== '0' && cfg.nsfw_enabled !== false && cfg.nsfw_enabled !== 0;
         }
+
+        // 3. Fallback al objeto CFG evaluado en carga inicial
+        if ( typeof CFG !== 'undefined' && typeof CFG.nsfw_enabled !== 'undefined' ) {
+            return CFG.nsfw_enabled !== '0' && CFG.nsfw_enabled !== false && CFG.nsfw_enabled !== 0;
+        }
+
         return true;
     }
 
@@ -721,6 +790,10 @@
         }
 
         var style = wrapper.dataset.displayStyle || wrapper.getAttribute( 'data-display-style' ) || 'minimal';
+        if ( style === 'disabled' ) {
+            wrapper.classList.remove( CLASS_LOCKED );
+            return;
+        }
 
         if ( style === 'minimal' ) {
             initMinimal( wrapper );
@@ -756,6 +829,12 @@
             document.querySelectorAll( '.bunny-gallery-wrapper[data-mode="nsfw"]' ).forEach( function ( wrapper ) {
                 if ( ! isNSFWProtectionEnabled( wrapper ) ) return;
                 var style = wrapper.dataset.displayStyle || wrapper.getAttribute( 'data-display-style' ) || 'minimal';
+                if ( style === 'disabled' ) return;
+
+                wrapper._bunnyMinimalInit = false;
+                wrapper._bunnyOverlayInit = false;
+                wrapper._bunnyHiddenInit  = false;
+
                 if ( style === 'minimal' ) {
                     initMinimal( wrapper );
                 } else if ( style === 'hidden' ) {
@@ -805,11 +884,23 @@
 
         document.querySelectorAll( '.bunny-gallery-wrapper' ).forEach( function ( wrapper ) {
             var mode = ( wrapper.dataset.mode || wrapper.getAttribute( 'data-mode' ) || 'sfw' ).toLowerCase();
-            if ( mode === 'nsfw' && isNSFWProtectionEnabled( wrapper ) ) {
+            var isProtected = ( mode === 'nsfw' && isNSFWProtectionEnabled( wrapper ) );
+
+            if ( isProtected ) {
                 hasActiveNSFW = true;
+                initNSFW( wrapper );
+            } else {
+                // Limpieza explícita: asegurar que ningún elemento o clase quede residuo
+                wrapper.classList.remove( CLASS_LOCKED );
+                var badge = wrapper.querySelector( '.bunny-nsfw-badge' );
+                if ( badge && badge.parentNode ) badge.parentNode.removeChild( badge );
+                var overlay = wrapper.querySelector( '.bunny-nsfw-overlay' );
+                if ( overlay && overlay.parentNode ) overlay.parentNode.removeChild( overlay );
             }
-            initNSFW( wrapper );
-            if ( ( wrapper.dataset.link || wrapper.getAttribute( 'data-link' ) ) === 'lightbox' ) {
+
+            var linkBehavior = wrapper.dataset.link || wrapper.getAttribute( 'data-link' );
+            if ( linkBehavior === 'lightbox' && ! wrapper._bunnyLightboxInit ) {
+                wrapper._bunnyLightboxInit = true;
                 new BunnyLightbox( wrapper );
             }
         } );
@@ -825,7 +916,8 @@
         ? document.addEventListener( 'DOMContentLoaded', init )
         : init();
 
-    try {// Exponer BunnyLightbox globalmente para que otros bloques puedan reutilizarlo
+    try {
+        // Exponer BunnyLightbox globalmente para que otros bloques puedan reutilizarlo
         window.BunnyLightbox = BunnyLightbox;
     } catch ( e ) {
         console.log( 'No se pudo exponer BunnyLightbox globalmente:', e );
